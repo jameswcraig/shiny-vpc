@@ -8,7 +8,8 @@ source("src/data_modules.R")
 
 title <- tags$a(href = "https://certara.com",
                 tags$img(src = "certara-shiny.png", height = '35', width = '150'))
-# 
+
+#
 # vpcNav <-    wellPanel(style = "background: light grey;",
 #                                                  fluidRow(
 #                                                    column(12,
