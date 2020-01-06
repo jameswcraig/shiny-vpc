@@ -17,13 +17,13 @@ binless_inputs_ui <- function(id) {
   ns <- NS(id)
   
   tagList(
-     column(6,
-         tags$h4("Quantiles"),
-         tags$hr(),
-         sliderInput(inputId = ns('piHi'), label = "Hi", value = .9, min = 0, max = 1, step = .05),
-         sliderInput(inputId = ns('piMed'), label = "Med", value = .5, min = 0, max = 1, step = .05),
-         sliderInput(inputId = ns('piLo'), label = "Lo", value = .1, min = 0, max = 1, step = .05)
-          ),
+     # column(6,
+     #     tags$h4("Quantiles"),
+     #     tags$hr(),
+     #     sliderInput(inputId = ns('piHi'), label = "Hi", value = .9, min = 0, max = 1, step = .05),
+     #     sliderInput(inputId = ns('piMed'), label = "Med", value = .5, min = 0, max = 1, step = .05),
+     #     sliderInput(inputId = ns('piLo'), label = "Lo", value = .1, min = 0, max = 1, step = .05)
+     #      ),
      column(6,
          tags$h4("Smoothing"),
          tags$hr(),
@@ -32,18 +32,20 @@ binless_inputs_ui <- function(id) {
          sliderInput(inputId = ns('lambdaHi'), label = "Lambda Hi",value = 3, min = 0, max = 7, step = .01),
          sliderInput(inputId = ns('lambdaMed'), label = "Lambda Med", value = 3, min = 0, max = 7, step = .01),
          sliderInput(inputId = ns('lambdaLo'), label = "Lambda Lo", value = 3, min = 0, max = 7, step = .01),
-         checkboxInput(ns("isLoessYPC"), label = "Loess Prediction Corrected"),
-         conditionalPanel(
-           condition = "input.isLoessYPC == true", ns = ns,
+         #checkboxInput(ns("isLoessYPC"), label = "Loess Prediction Corrected"),
+        # conditionalPanel(
+         #  condition = paste0("input.", ns("isLoessYPC")),
            sliderInput(inputId = ns("span"), label = "Span", min = 0, max = 1, value = .5))
-     ) 
+     #) 
   )
 
 }
 
 
-binless_inputs <- function(input, output, session, vpc.Binless) {
+binless_inputs <- function(input, output, session) {
 
+  session = session$ns
+  
   piUser <- reactive({
     c(input$piLo, input$piMed, input$piHi)
   })
@@ -70,7 +72,7 @@ binless_inputs <- function(input, output, session, vpc.Binless) {
   # 
   
   return( reactive({
-    list(piUser = piUser(),
+    list(#piUser = piUser(),
          lamUser = lamUser(),
          spanUser = spanUser(),
          intervalUser = intervalUser()
@@ -78,4 +80,32 @@ binless_inputs <- function(input, output, session, vpc.Binless) {
   })
   )
   
+}
+
+
+quantiles_ui <- function(id){
+  ns <- NS(id)
+  tagList(
+    column(6,
+         tags$h4("Quantiles"),
+         tags$hr(),
+         sliderInput(inputId = ns('piHi'), label = "Hi", value = .9, min = 0, max = 1, step = .05),
+         sliderInput(inputId = ns('piMed'), label = "Med", value = .5, min = 0, max = 1, step = .05),
+         sliderInput(inputId = ns('piLo'), label = "Lo", value = .1, min = 0, max = 1, step = .05)
+  ))
+}
+
+quantiles_server <- function(input, output, session) {
+    
+    session = session$ns
+    
+    piUser <- reactive({
+      c(input$piLo, input$piMed, input$piHi)
+    })
+    
+    return(
+      reactive({
+        piUser = piUser()
+      })
+    )
 }

@@ -4,11 +4,11 @@
 
 
 
-file_upload_ui <- function(id) {
+file_observed_ui <- function(id) {
   ns <- NS(id)
   
     fileInput(
-      ns("dataFile"), "Upload Data File",
+      ns("dataFile"), label = "Upload Observed File",
       multiple = FALSE,
       accept = c("text/csv",
                  "text/comma-separated-values,text/plain",
@@ -17,7 +17,7 @@ file_upload_ui <- function(id) {
   
 }
 
-file_upload <- function(input, output, session) {
+file_observed <- function(input, output, session) {
   
   reactive({
     req(input$dataFile)
@@ -31,3 +31,35 @@ file_upload <- function(input, output, session) {
 }
 
 
+file_simulated_ui <- function(id) {
+  ns <- NS(id)
+  
+  fileInput(
+    ns("dataFile"), label = "Upload Simulated File",
+    multiple = FALSE,
+    accept = c("text/csv",
+               "text/comma-separated-values,text/plain",
+               ".csv", ".fit", ".RDS"))
+  
+}
+
+file_simulated <- function(input, output, session) {
+  
+  metaReactive2({
+    req(input$dataFile)
+    if (endsWith(input$dataFile$datapath, "RDS")) {
+      metaExpr({
+    readRDS(..(input$dataFile$datapath))
+  })
+    } else {
+      fread(input$dataFile$datapath)
+    }# skip=1, #only skip if fit?
+    #header=T, stringsAsFactors=
+  })
+}
+# 
+# renderUI({
+#   verbatimTextOutput(outputId = "fileExt" input$dataFile)
+#            )
+
+#To do, check if simulated is multiple of observed

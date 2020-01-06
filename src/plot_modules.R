@@ -1,14 +1,95 @@
+# modal_plot_ui <- function(id) {
+#   ns <- NS(id)
+#   
+#   actionButton(ns("openPlotModalBtn"), "Customize Plot")
+# }
+# 
+# # Modal module server
+# modal_plot <- function(input, output, session) {
+#   
+#   myModal <- function() {
+#       modalDialog(
+#         renderUI({
+#           plot_aesthetics_ui("plotInputsUser")
+#               }),
+#         footer = modalButton("Close")
+#       )
+#     }
+#   
+#   # Show modal dialog on start up
+#   observeEvent(input$openPlotModalBtn,
+#                ignoreNULL = TRUE,
+#                showModal(myModal())
+#   )
+#   
+#   lineTypes <- callModule(plot_aesthetics, "plotInputsUser")
+#   
+#   return(
+#     reactive({lineTypes})
+#   )
+#   
+# }
+
+#plot_aesthetics_ui <- function(id) {
+  #ns <- NS(id)
+  
+  #lineTypes <- c("blank", "solid", "dashed", "dotted", "dotdash", "longdash", "twodash")
+  
+  # tagList(
+  #   fluidRow(
+  #     column(4,
+  #   selectizeInput(ns("lineTypeHi"), "Quanitle High", choices = c("blank", "solid", "dashed", "dotted", "dotdash", "longdash", "twodash"), selected = "dashed"),
+  #   selectizeInput(ns("lineTypeMed"), "Quantile Median", choices = c("blank", "solid", "dashed", "dotted", "dotdash", "longdash", "twodash"), selected = "solid"),
+  #   selectizeInput(ns("lineTypeLo"), "Quantile Low", choices = c("blank", "solid", "dashed", "dotted", "dotdash", "longdash", "twodash"), selected = "dotted")
+  #     )
+  # )
+  # )
+  # myModal <- function() {
+  #   modalDialog(
+  #     renderUI({
+  #       tagList(
+  #         selectizeInput("plotTheme", "Theme",  choices = c("theme_bw", "theme_grey", "theme_gray", "theme_light")),
+  #         fluidRow(
+  #           column(4,
+  #                  tags$h4("Line Type"),
+  #                  selectizeInput("lineTypeHi", "Quanitle High", choices = lineTypes, selected = "dashed"),
+  #                  selectizeInput("lineTypeMed", "Quantile Median", choices = lineTypes, selected = "solid"),
+  #                  selectizeInput("lineTypeLo", "Quantile Low", choices = lineTypes, selected = "dotted")
+  #           )
+  #         )
+  #       )
+  #     }),
+  #     footer = modalButton("Close")
+  #   )
+  # }
+#  
+#}
+
+#plot_aesthetics <- function(input, output, session) {
+#
+# lineTypes <- reactive({
+#   c(input$lineTypeHi, input$lineTypeMed, input$lineTypeLo)
+# })
+#   
+# return(
+#   reactive({lineTypes})
+# )
+  
+
+#}
+
 plot_binless_ui <- function(id) {
   ns <- NS(id)
   
-  withSpinner(plotOutput(ns("plotVPC"), height = "600px"), type = 8)
-  
+  tagList(
+  withSpinner(plotOutput(ns("plotVPC"), height = "650px"), type = 8)
+  )
   
 }
 
 #Server
 
-plot_binless <- function(input, output, session, vpc){
+plot_binless <- function(input, output, session, vpc, plotAes, buttonVal){
   
   require(vpc())
   
@@ -19,104 +100,21 @@ plot_binless <- function(input, output, session, vpc){
   })
   
   output$plotVPC <- renderPlot({
-    if(!is.null(vpc()$strat)) {
-     p <- ggplot(vpc()$stats, aes(x=x)) +
-        facet_grid(stratformula()) +
-        geom_ribbon(aes(ymin=lo, ymax=hi, fill=qname, col=qname, group=qname), alpha=0.1, col=NA) +
-        geom_line(aes(y=med, col=qname, group=qname)) +
-        geom_line(aes(y=y, linetype=qname), size=1) +
-        geom_point(aes(y = l.ypc, x = x), data = vpc()$obs)  +
-        scale_colour_manual(
-          name="Simulated Percentiles\nMedian (lines) 95% CI (areas)",
-          breaks=c("q0.1", "q0.5", "q0.9"),
-          values=c("red", "blue", "red"),
-          labels=c("5%", "50%", "95%")) +
-        scale_fill_manual(
-          name="Simulated Percentiles\nMedian (lines) 95% CI (areas)",
-          breaks=c("q0.1", "q0.5", "q0.9"),
-          values=c("red", "blue", "red"),
-          labels=c("5%", "50%", "95%")) +
-        scale_linetype_manual(
-          name="Observed Percentiles\n(black lines)",
-          breaks=c("q0.1", "q0.5", "q0.9"),
-          values=c("dotted", "solid", "dashed"),
-          labels=c("10%", "50%", "90%")) +
-        guides(
-          fill=guide_legend(order=2),
-          colour=guide_legend(order=2),
-          linetype=guide_legend(order=1)) +
-        theme(
-          legend.position="top",
-          legend.key.width=grid::unit(2, "cm")) +
-        labs(x="Time (h)", y="Concentration (ng/mL)")
-    } 
-    #no strat and predcorrect
-    if (is.null(vpc()$strat) && isTRUE(vpc()$loess.ypc)) {
-     p <- ggplot(vpc()$stats, aes(x=x)) +
-        geom_ribbon(aes(ymin=lo, ymax=hi, fill=qname, col=qname, group=qname), alpha=0.1, col=NA) +
-        geom_line(aes(y=med, col=qname, group=qname)) +
-        geom_line(aes(y=y, linetype=qname), size=1) +
-        geom_point(aes(y = l.ypc, x = x), data = vpc()$obs)  +
-        scale_colour_manual(
-          name="Simulated Percentiles\nMedian (lines) 95% CI (areas)",
-          breaks=c("q0.1", "q0.5", "q0.9"),
-          values=c("red", "blue", "red"),
-          labels=c("5%", "50%", "95%")) +
-        scale_fill_manual(
-          name="Simulated Percentiles\nMedian (lines) 95% CI (areas)",
-          breaks=c("q0.1", "q0.5", "q0.9"),
-          values=c("red", "blue", "red"),
-          labels=c("5%", "50%", "95%")) +
-        scale_linetype_manual(
-          name="Observed Percentiles\n(black lines)",
-          breaks=c("q0.1", "q0.5", "q0.9"),
-          values=c("dotted", "solid", "dashed"),
-          labels=c("10%", "50%", "90%")) +
-        guides(
-          fill=guide_legend(order=2),
-          colour=guide_legend(order=2),
-          linetype=guide_legend(order=1)) +
-        theme(
-          legend.position="top",
-          legend.key.width=grid::unit(2, "cm")) +
-        labs(x="Time (h)", y="Concentration (ng/mL)")
+    if (buttonVal() < 1) {
+      plot(vpc())
+    } else {
+      req(plotAes())
+      plot(vpc(), show.points = plotAes()$show.points,
+           #show.boundaries = plotAes()$showBoundaries,
+           #show.stats = input$showStats,
+           xlab = plotAes()$xlab, 
+           ylab = plotAes()$ylab, 
+           color = plotAes()$color, 
+           linetype = plotAes()$linetype,
+           legend.position = plotAes()$legendPosition,
+           facet.scales = plotAes()$facetScales,
+           custom.theme = plotAes()$themeType)
     }
-    #no strat and nopredcorrect
-    if (is.null(vpc()$strat) && is.null(vpc()$loess.ypc)) {
-      p <- ggplot(vpc()$stats, aes(x=x)) +
-        geom_ribbon(aes(ymin=lo, ymax=hi, fill=qname, col=qname, group=qname), alpha=0.1, col=NA) +
-        geom_line(aes(y=med, col=qname, group=qname)) +
-        geom_line(aes(y=y, linetype=qname), size=1) +
-        geom_point(aes(y = y, x = x), data = vpc()$obs)  +
-        scale_colour_manual(
-          name="Simulated Percentiles\nMedian (lines) 95% CI (areas)",
-          breaks=c("q0.1", "q0.5", "q0.9"),
-          values=c("red", "blue", "red"),
-          labels=c("5%", "50%", "95%")) +
-        scale_fill_manual(
-          name="Simulated Percentiles\nMedian (lines) 95% CI (areas)",
-          breaks=c("q0.1", "q0.5", "q0.9"),
-          values=c("red", "blue", "red"),
-          labels=c("5%", "50%", "95%")) +
-        scale_linetype_manual(
-          name="Observed Percentiles\n(black lines)",
-          breaks=c("q0.1", "q0.5", "q0.9"),
-          values=c("dotted", "solid", "dashed"),
-          labels=c("10%", "50%", "90%")) +
-        guides(
-          fill=guide_legend(order=2),
-          colour=guide_legend(order=2),
-          linetype=guide_legend(order=1)) +
-        theme(
-          legend.position="top",
-          legend.key.width=grid::unit(2, "cm")) +
-        labs(x="Time (h)", y="Concentration (ng/mL)")
-    }
-    
-    if (!is.null(vpc()$xbin)) {
-      p <- plot(vpc())
-    }
-    
-    p
   })
-}
+  
+  }
