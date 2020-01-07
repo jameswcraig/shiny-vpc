@@ -68,12 +68,14 @@ ui <- dashboardPage(skin = "black",
                                       )
                                     ),
                                   conditionalPanel(condition = "input.typeVPC == 'Binless'",
-                                    wellPanel(
+                                    column(6,
                                       quantiles_ui("qpred1"),
-                                      confidence_interval_ui("ci1"),
+                                      confidence_interval_ui("ci1")
+                                      ),
+                                    column(6,
                                       conditionalPanel(condition = "input.isAutoOptimize == false",
                                         binless_inputs_ui("binlessInputs1")),
-                                 checkboxInput("isAutoOptimize", label = "Optimize Binless VPC", value = FALSE),
+                                      checkboxInput("isAutoOptimize", label = "Optimize Binless VPC", value = FALSE),
                                  tableOutput("optLambda")
                                   )
                                  )
@@ -102,8 +104,8 @@ ui <- dashboardPage(skin = "black",
                                                  tags$hr(),
                                                  textInput("xlabel", "X-Label", value = "TIME"),
                                                  textInput("ylabel", "Y-Label", value = "Concentration"),
-                                                 tags$h4("Theme"),
-                                                 selectizeInput("themeType", "Select Theme", choices = c("theme_grey", "theme_bw", "theme_linedraw", "theme_light", "theme_dark", "theme_minimal", "theme_classic"), selected = "theme_bw")
+                                                 #tags$h4("Theme"),
+                                                 #selectizeInput("themeType", "Select Theme", choices = c("theme_grey", "theme_bw", "theme_linedraw", "theme_light", "theme_dark", "theme_minimal", "theme_classic"), selected = "theme_bw")
                                           ),
                                           column(3,
                                                  tags$h4("Arrange"),

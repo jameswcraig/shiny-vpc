@@ -143,6 +143,80 @@ server <- function(input, output, session) {
              vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
          })
        }
+       #Binning, strat, no pred correct, no censoring
+     } else if (input$typeVPC == "Binning" && !is.null(input$stratvar) && !input$isPred && !input$isCensoring) {
+       if (input$typeBinning == "x-variable") {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             stratify(..(form)) %>%
+             binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else if (input$typeBinning == "centers") {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             stratify(..(form)) %>%
+             binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else if (input$typeBinning == "breaks") {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             stratify(..(form)) %>%
+             binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             stratify(..(form)) %>%
+             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       }
+       #Binning, strat, pred correct, no censoring
+     } else if (input$typeVPC == "Binning" && !is.null(input$stratvar) && input$isPred && !input$isCensoring) {
+       if (input$typeBinning == "x-variable") {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             stratify(..(form)) %>%
+             binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
+             predcorrect(!!rlang::sym(..(input$predvar))) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else if (input$typeBinning == "centers") {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             stratify(..(form)) %>%
+             binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
+             predcorrect(!!rlang::sym(..(input$predvar))) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else if (input$typeBinning == "breaks") {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             stratify(..(form)) %>%
+             binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
+             predcorrect(!!rlang::sym(..(input$predvar))) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             stratify(..(form)) %>%
+             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
+             predcorrect(!!rlang::sym(..(input$predvar))) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       }
        #Binning, strat, pred correct, censoring
      } else if (input$typeVPC == "Binning" && !is.null(input$stratvar) && input$isPred && input$isCensoring) {
        if (input$typeBinning == "x-variable") {
@@ -181,6 +255,80 @@ server <- function(input, output, session) {
              simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
              censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
              stratify(..(form)) %>%
+             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
+             predcorrect(!!rlang::sym(..(input$predvar))) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       }
+       #Binning, no strat, pred correct, no censoring
+     } else if (input$typeVPC == "Binning" && is.null(input$stratvar) && input$isPred && !input$isCensoring) {
+       if (input$typeBinning == "x-variable") {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
+             predcorrect(!!rlang::sym(..(input$predvar))) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else if (input$typeBinning == "centers") {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
+             predcorrect(!!rlang::sym(..(input$predvar))) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else if (input$typeBinning == "breaks") {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
+             predcorrect(!!rlang::sym(..(input$predvar))) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
+             predcorrect(!!rlang::sym(..(input$predvar))) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       }
+       #Binning, no strat, pred correct, censoring
+     } else if (input$typeVPC == "Binning" && is.null(input$stratvar) && input$isPred && input$isCensoring) {
+       if (input$typeBinning == "x-variable") {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
+             binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
+             predcorrect(!!rlang::sym(..(input$predvar))) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else if (input$typeBinning == "centers") {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
+             binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
+             predcorrect(!!rlang::sym(..(input$predvar))) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else if (input$typeBinning == "breaks") {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
+             binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
+             predcorrect(!!rlang::sym(..(input$predvar))) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
              binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
              predcorrect(!!rlang::sym(..(input$predvar))) %>%
              vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
