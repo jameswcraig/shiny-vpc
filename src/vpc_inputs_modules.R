@@ -86,13 +86,12 @@ binless_inputs <- function(input, output, session) {
 quantiles_ui <- function(id){
   ns <- NS(id)
   tagList(
-    column(6,
          tags$h4("Quantiles"),
          tags$hr(),
          sliderInput(inputId = ns('piHi'), label = "Hi", value = .9, min = 0, max = 1, step = .05),
          sliderInput(inputId = ns('piMed'), label = "Med", value = .5, min = 0, max = 1, step = .05),
          sliderInput(inputId = ns('piLo'), label = "Lo", value = .1, min = 0, max = 1, step = .05)
-  ))
+   )
 }
 
 quantiles_server <- function(input, output, session) {
@@ -108,4 +107,29 @@ quantiles_server <- function(input, output, session) {
         piUser = piUser()
       })
     )
+}
+
+
+confidence_interval_ui <- function(id){
+  ns <- NS(id)
+  tagList(
+    tags$h4("Confidence Level"),
+    tags$hr(),
+    sliderInput(inputId = ns('ci'), label = "", value = .95, min = 0, max = 1, step = .05)
+  )
+}
+
+confidence_interval_server <- function(input, output, session) {
+  
+  session = session$ns
+  
+  ciUser <- reactive({
+    input$ci
+  })
+  
+  return(
+    reactive({
+      ciUser = ciUser()
+    })
+  )
 }
