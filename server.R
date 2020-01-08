@@ -3,11 +3,7 @@
 server <- function(input, output, session) {
   
   fileObs <- callModule(file_observed, "fileObs")
-  #fileSim <- callModule(file_simulated, "fileSim")
-  
-  fileSim <- metaReactive({
-      readRDS(..(input$file_sim_t$datapath))
-  })
+  fileSim <- callModule(file_simulated, "fileSim")
 
   observeEvent(fileObs(),{
     updateSelectizeInput(session, inputId = "yvar", choices = names(fileObs()))
@@ -23,12 +19,38 @@ server <- function(input, output, session) {
  userQuantiles <- callModule(quantiles_server, "qpred1")
  
  confidenceInterval <- callModule(confidence_interval_server, "ci1")
-   
- plotInputs <- callModule(modal_plot, "customPlot")
-
  
- output$vpccode <-  metaRender(renderPrint,{
-   ..(vpc())
+ stratlist <- reactive({
+   input$stratvar
+ })
+ lamStrat <- reactive({
+   req(input$stratvar)
+   len <- list(numeric(length(stratlist())))
+   # lev <- length(levels(factor(stratlist)))
+   for (i in 1:length(stratlist())) {
+     len[[i]] <-  fluidRow(
+       column(6,
+              sliderInput(inputId = paste0('lambdaStratHi0_', i), label = paste0("Lambda Hi 0", i),value = 3, min = 0, max = 7, step = .01),
+              sliderInput(inputId = paste0('lambdaStratMed0_', i), label = paste0("Lambda Med 0", i), value = 3, min = 0, max = 7, step = .01),
+              sliderInput(inputId = paste0('lambdaStratLo0_', i), label = paste0("Lambda Lo 0", i), value = 3, min = 0, max = 7, step = .01)
+       ),
+       column(6,                                
+              sliderInput(inputId = paste0('lambdaStratHi1_', i), label = paste0("Lambda Hi 1", i),value = 3, min = 0, max = 7, step = .01),
+              sliderInput(inputId = paste0('lambdaStratMed1_', i), label = paste0("Lambda Med 1", i), value = 3, min = 0, max = 7, step = .01),
+              sliderInput(inputId = paste0('lambdaStratLo1_', i), label = paste0("Lambda Lo 1", i), value = 3, min = 0, max = 7, step = .01)
+       )
+     )
+   }
+   len
+ })
+ 
+ output$stratLambdas <- renderUI(lamStrat())
+ 
+ userLamStrat <- metaReactive({
+   data.table(
+     group0 = c(..(input$lambdaStratLo0_1), ..(input$lambdaStratMed0_1), ..(input$lambdaStratHi0_1)),
+     group1 = c(..(input$lambdaStratLo1_1), ..(input$lambdaStratMed1_1), ..(input$lambdaStratHi1_1))
+   )
  })
  
  vpc <- metaReactive2({
@@ -45,8 +67,9 @@ server <- function(input, output, session) {
      }
      
      
-     #strat, optimized, predcorrect
-     if(input$typeVPC == "Binless" && input$isAutoOptimize && input$isPred && !is.null(input$stratvar)) {
+     #strat, predcorrect, no censoring
+     if(input$typeVPC == "Binless" && input$isPred && !is.null(input$stratvar) && !input$isCensoring) {
+       if(input$isAutoOptimize) {
        metaExpr({
          observed(fileObs(), x= !!rlang::sym(..(input$xvar)), y= !!rlang::sym(..(input$yvar))) %>%
            simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
@@ -56,18 +79,40 @@ server <- function(input, output, session) {
            binlessfit(conf.level = ..(confidenceInterval())) %>%
            vpcstats()
        })
-       #strat, optimized, nopredcorrect
-     } else if (input$typeVPC == "Binless" && input$isAutoOptimize && !is.null(input$stratvar) && !input$isPred) {
-       metaExpr({
-         observed(fileObs(), x= !!rlang::sym(..(input$xvar)), y= !!rlang::sym(..(input$yvar))) %>%
-           simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-           stratify(..(form)) %>%
-           binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = FALSE) %>%
-           binlessfit(conf.level = ..(confidenceInterval())) %>%
-           vpcstats()
-       })
-     } else if(input$typeVPC == "Binless" && input$isAutoOptimize && is.null(input$stratvar) && input$isPred) {
+       } else {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)), y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             stratify(..(form)) %>%
+             predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
+             binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
+             binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(userLamStrat())) %>%
+             vpcstats()
+         })
+       }
+       #strat, nopredcorrect, no censoring
+     } else if (input$typeVPC == "Binless" && !is.null(input$stratvar) && !input$isPred) {
+       if(input$isAutoOptimize) {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)), y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             stratify(..(form)) %>%
+             binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
+             binlessfit(conf.level = ..(confidenceInterval())) %>%
+             vpcstats()
+         })
+       } else {
+         metaExpr({
+           observed(fileObs(), x= !!rlang::sym(..(input$xvar)), y= !!rlang::sym(..(input$yvar))) %>%
+             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+             stratify(..(form)) %>%
+             binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
+             binlessfit(conf.level = ..(confidenceInterval()), llam.qpred = ..(userLamStrat())) %>%
+             vpcstats()
+         })
+       }
        #nostrat, optimized, predcorrect
+     } else if(input$typeVPC == "Binless" && input$isAutoOptimize && is.null(input$stratvar) && input$isPred) {
        metaExpr({
          observed(fileObs(), x= !!rlang::sym(..(input$xvar)), y= !!rlang::sym(..(input$yvar))) %>%
            simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
@@ -408,23 +453,6 @@ server <- function(input, output, session) {
  })
 
 
-  
-  observeEvent(input$generateCode, {
-    code <- expandChain(
-      quote({
-        library(ggplot2)
-        library(vpcstats)
-      }),
-      fileSim(),
-      output$vpccode(), 
-      output$plotVPC()
-)
-    
-    displayCodeModal(
-      code = code,
-      title = "Code to reproduce VPC"
-    )
-  })
 
   plotAesthetics <- reactive({
     list(
@@ -444,12 +472,6 @@ server <- function(input, output, session) {
     conf.level = confidenceInterval()
     )
   })
-  
-
-  output$tableObs <- renderDataTable({
-    datatable(vpc()$stats, rownames = FALSE)
-  })
-  
   
  vpcPlot <- metaReactive2({
    req(vpc())
@@ -605,9 +627,34 @@ server <- function(input, output, session) {
         g
       }
  })
+ 
+ 
+ observeEvent(input$generateCode, {
+   code <- expandChain(
+     quote({
+       library(ggplot2)
+       library(vpcstats)
+     }),
+     output$vpccode(), 
+     output$plotVPC()
+   )
+   
+   displayCodeModal(
+     code = code,
+     title = "Code to reproduce VPC"
+   )
+ })
 
   output$plotVPC <- metaRender(renderPlot, {
    ..(vpcPlot())
+  })
+  
+  output$vpccode <-  metaRender(renderPrint,{
+    ..(vpc())
+  })
+  
+  output$tableObs <- renderDataTable({
+    datatable(vpc()$stats, rownames = FALSE)
   })
   
   # output$optLambda <- renderTable({

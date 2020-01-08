@@ -17,14 +17,6 @@ binless_inputs_ui <- function(id) {
   ns <- NS(id)
   
   tagList(
-     # column(6,
-     #     tags$h4("Quantiles"),
-     #     tags$hr(),
-     #     sliderInput(inputId = ns('piHi'), label = "Hi", value = .9, min = 0, max = 1, step = .05),
-     #     sliderInput(inputId = ns('piMed'), label = "Med", value = .5, min = 0, max = 1, step = .05),
-     #     sliderInput(inputId = ns('piLo'), label = "Lo", value = .1, min = 0, max = 1, step = .05)
-     #      ),
-     column(6,
          tags$h4("Smoothing"),
          tags$hr(),
          sliderInput(ns("interval"), label = "Optimization Interval", min = -2, max = 10, value = c(0, 7)), 
@@ -35,7 +27,8 @@ binless_inputs_ui <- function(id) {
          #checkboxInput(ns("isLoessYPC"), label = "Loess Prediction Corrected"),
         # conditionalPanel(
          #  condition = paste0("input.", ns("isLoessYPC")),
-           sliderInput(inputId = ns("span"), label = "Span", min = 0, max = 1, value = .5))
+        tags$h5("LOESS"),
+        sliderInput(inputId = ns("span"), label = "Span", min = 0, max = 1, value = .5)
      #) 
   )
 
@@ -72,8 +65,7 @@ binless_inputs <- function(input, output, session) {
   # 
   
   return( reactive({
-    list(#piUser = piUser(),
-         lamUser = lamUser(),
+    list(lamUser = lamUser(),
          spanUser = spanUser(),
          intervalUser = intervalUser()
     )
@@ -82,6 +74,48 @@ binless_inputs <- function(input, output, session) {
   
 }
 
+plot_aesthetics_ui <- function(id) {
+ns <- NS(id)
+lineTypes <- c("blank", "solid", "dashed", "dotted", "dotdash", "longdash", "twodash")
+tagList(
+  fluidRow(
+    column(4,
+  selectizeInput(ns("lineTypeHi"), "Quanitle High", choices = c("blank", "solid", "dashed", "dotted", "dotdash", "longdash", "twodash"), selected = "dashed"),
+  selectizeInput(ns("lineTypeMed"), "Quantile Median", choices = c("blank", "solid", "dashed", "dotted", "dotdash", "longdash", "twodash"), selected = "solid"),
+  selectizeInput(ns("lineTypeLo"), "Quantile Low", choices = c("blank", "solid", "dashed", "dotted", "dotdash", "longdash", "twodash"), selected = "dotted")
+    )
+)
+)
+myModal <- function() {
+  modalDialog(
+    renderUI({
+      tagList(
+        selectizeInput("plotTheme", "Theme",  choices = c("theme_bw", "theme_grey", "theme_gray", "theme_light")),
+        fluidRow(
+          column(4,
+                 tags$h4("Line Type"),
+                 selectizeInput("lineTypeHi", "Quanitle High", choices = lineTypes, selected = "dashed"),
+                 selectizeInput("lineTypeMed", "Quantile Median", choices = lineTypes, selected = "solid"),
+                 selectizeInput("lineTypeLo", "Quantile Low", choices = lineTypes, selected = "dotted")
+          )
+        )
+      )
+    }),
+    footer = modalButton("Close")
+  )
+}
+
+}
+plot_aesthetics <- function(input, output, session) {
+
+lineTypes <- reactive({
+  c(input$lineTypeHi, input$lineTypeMed, input$lineTypeLo)
+})
+
+return(
+  reactive({lineTypes})
+)
+}
 
 quantiles_ui <- function(id){
   ns <- NS(id)

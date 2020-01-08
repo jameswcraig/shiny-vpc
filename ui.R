@@ -1,17 +1,9 @@
-
-#create separate action plot vpc buttons in conditional panels
 ui <- dashboardPage(skin = "black",
                     dashboardHeader(title = title
                     ),
                     dashboardSidebar(
                       file_observed_ui("fileObs"),
-                     # file_simulated_ui("fileSim"),
-                     fileInput( "file_sim_t",
-                       label = "Upload Simulated File",
-                       multiple = FALSE,
-                       accept = c("text/csv",
-                                  "text/comma-separated-values,text/plain",
-                                  ".csv", ".fit", ".RDS")),
+                      file_simulated_ui("fileSim"),
                       tags$br(),
                       selectizeInput("yvar", label = "Y Variable", choices = NULL, multiple = FALSE ),
                       selectizeInput("xvar", label = "X Variable", choices = NULL, multiple = FALSE ),
@@ -75,6 +67,7 @@ ui <- dashboardPage(skin = "black",
                                     column(6,
                                       conditionalPanel(condition = "input.isAutoOptimize == false",
                                         binless_inputs_ui("binlessInputs1")),
+                                      uiOutput("stratLambdas"),
                                       checkboxInput("isAutoOptimize", label = "Optimize Binless VPC", value = FALSE),
                                  tableOutput("optLambda")
                                   )
