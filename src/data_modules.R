@@ -17,14 +17,22 @@ file_observed_ui <- function(id) {
   
 }
 
-file_observed <- function(input, output, session) {
+file_observed_server <- function(input, output, session) {
+ 
+   observeEvent(is.null(input$dataFile), {
+    showNotification("Please upload observed and simulated data files")
+  })
   
-  reactive({
+  data <- metaReactive2({
     req(input$dataFile)
     if (endsWith(input$dataFile$datapath, "RDS")) {
-      readRDS(input$dataFile$datapath)
+      metaExpr({
+        readRDS(..(input$dataFile$datapath))
+        })
     } else {
-      fread(input$dataFile$datapath)
+      metaExpr({
+        fread(..(input$dataFile$datapath))
+        })
     }# skip=1, #only skip if fit?
     #header=T, stringsAsFactors=
   })
@@ -43,16 +51,18 @@ file_simulated_ui <- function(id) {
   
 }
 
-file_simulated <- function(input, output, session) {
+file_simulated_server <- function(input, output, session) {
   
-  metaReactive2({
+  data <- metaReactive2({
     req(input$dataFile)
     if (endsWith(input$dataFile$datapath, "RDS")) {
       metaExpr({
-    readRDS(..(input$dataFile$datapath))
-  })
+        readRDS(..(input$dataFile$datapath))
+      })
     } else {
-      fread(input$dataFile$datapath)
+      metaExpr({
+        fread(..(input$dataFile$datapath))
+      })
     }# skip=1, #only skip if fit?
     #header=T, stringsAsFactors=
   })
