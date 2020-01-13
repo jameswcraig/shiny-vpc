@@ -17,18 +17,19 @@ binless_inputs_ui <- function(id) {
   ns <- NS(id)
   
   tagList(
-         tags$h4("Smoothing"),
+         tags$h4("Binless"),
          tags$hr(),
          sliderInput(ns("interval"), label = "Optimization Interval", min = -2, max = 10, value = c(0, 7)), 
          tags$h5("Additive Quantile Regression"),
          sliderInput(inputId = ns('lambdaHi'), label = "Lambda Hi",value = 3, min = 0, max = 7, step = .01),
          sliderInput(inputId = ns('lambdaMed'), label = "Lambda Med", value = 3, min = 0, max = 7, step = .01),
          sliderInput(inputId = ns('lambdaLo'), label = "Lambda Lo", value = 3, min = 0, max = 7, step = .01),
-         #checkboxInput(ns("isLoessYPC"), label = "Loess Prediction Corrected"),
-        # conditionalPanel(
-         #  condition = paste0("input.", ns("isLoessYPC")),
+         checkboxInput("isLoessYPC", label = "Loess Prediction Corrected"),
+         conditionalPanel(
+           condition = "input.isLoessYPC == true",
+           #condition = paste0("input.", ns("isLoessYPC")),
         tags$h5("LOESS"),
-        sliderInput(inputId = ns("span"), label = "Span", min = 0, max = 1, value = .5)
+        sliderInput(inputId = ns("span"), label = "Span", min = 0, max = 1, value = .5))
      #) 
   )
 
@@ -122,9 +123,7 @@ quantiles_ui <- function(id){
   tagList(
          tags$h4("Quantiles"),
          tags$hr(),
-         sliderInput(inputId = ns('piHi'), label = "Hi", value = .9, min = 0, max = 1, step = .05),
-         sliderInput(inputId = ns('piMed'), label = "Med", value = .5, min = 0, max = 1, step = .05),
-         sliderInput(inputId = ns('piLo'), label = "Lo", value = .1, min = 0, max = 1, step = .05)
+         textInput(ns("piUser"), label = "", value = c("0.05,0.5,0.95"))
    )
 }
 
@@ -133,8 +132,8 @@ quantiles_server <- function(input, output, session) {
     session = session$ns
     
     piUser <- reactive({
-      c(input$piLo, input$piMed, input$piHi)
-    })
+      as.numeric(unlist(strsplit(input$piUser, split = ",")))
+      })
     
     return(
       reactive({
@@ -149,7 +148,7 @@ confidence_interval_ui <- function(id){
   tagList(
     tags$h4("Confidence Level"),
     tags$hr(),
-    sliderInput(inputId = ns('ci'), label = "", value = .95, min = 0, max = 1, step = .05)
+    numericInput(ns("ciUser"), label = "", value = .95)
   )
 }
 
@@ -158,7 +157,7 @@ confidence_interval_server <- function(input, output, session) {
   session = session$ns
   
   ciUser <- reactive({
-    input$ci
+    input$ciUser
   })
   
   return(
