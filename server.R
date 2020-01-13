@@ -2,8 +2,9 @@
 
 server <- function(input, output, session) {
   
-  fileObs <- callModule(file_observed, "fileObs")
-  fileSim <- callModule(file_simulated, "fileSim")
+  
+  fileObs <- callModule(file_observed_server, "obs")
+  fileSim <- callModule(file_simulated_server, "sim")
 
   observeEvent(fileObs(),{
     updateSelectizeInput(session, inputId = "yvar", choices = names(fileObs()))
@@ -23,6 +24,7 @@ server <- function(input, output, session) {
  stratlist <- reactive({
    input$stratvar
  })
+ 
  lamStrat <- reactive({
    req(input$stratvar)
    len <- list(numeric(length(stratlist())))
@@ -65,393 +67,137 @@ server <- function(input, output, session) {
      } else {
        form <- NULL
      }
-     
-     
-     #strat, predcorrect, no censoring
-     if(input$typeVPC == "Binless" && input$isPred && !is.null(input$stratvar) && !input$isCensoring) {
-       if(input$isAutoOptimize) {
-       metaExpr({
-         observed(fileObs(), x= !!rlang::sym(..(input$xvar)), y= !!rlang::sym(..(input$yvar))) %>%
-           simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-           stratify(..(form)) %>%
-           predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
-           binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
-           binlessfit(conf.level = ..(confidenceInterval())) %>%
-           vpcstats()
-       })
+
+     vpcUser <- metaExpr({
+       observed(..(fileObs()), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
+         simulated(..(fileSim()), y= !!rlang::sym(..(input$yvar))) 
+     })
+       
+     if(input$isCensoring) {
+       if (input$censorType == "Value") {
+         req(input$userLLOQ)
+         vpcUser <- metaExpr({ 
+           ..(vpcUser) %>%
+             censoring(blq = !!rlang::sym(..(input$yvar)) < ..(input$userLLOQ), lloq = ..(input$userLLOQ))
+         })
        } else {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)), y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             stratify(..(form)) %>%
+        req(input$censorvar)
+        vpcUser <-  metaExpr({
+           ..(vpcUser) %>%
+             censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar)))
+        })
+       }
+     }
+     
+     if(!is.null(form)) {
+       req(input$stratvar)
+       vpcUser <- metaExpr({
+         ..(vpcUser) %>%
+           stratify(..(form))
+       })
+     }
+     
+     if (input$typeVPC == "Binning" && !input$isPred) {
+       if (input$typeBinning == "x-variable") {
+        vpcUser <- metaExpr({ 
+          ..(vpcUser) %>%
+             binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else if (input$typeBinning == "centers") {
+         vpcUser <- metaExpr({ 
+           ..(vpcUser) %>%
+             binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else if (input$typeBinning == "breaks") {
+         vpcUser <- metaExpr({ 
+           ..(vpcUser) %>%
+             binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else {
+         vpcUser <- metaExpr({ 
+           ..(vpcUser) %>%
+             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       }
+     }
+     
+     if (input$typeVPC == "Binning" && input$isPred) {
+       if (input$typeBinning == "x-variable") {
+         vpcUser <- metaExpr({ 
+           ..(vpcUser) %>%
+             binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
              predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
-             binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
-             binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(userLamStrat())) %>%
-             vpcstats()
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else if (input$typeBinning == "centers") {
+         vpcUser <- metaExpr({ 
+           ..(vpcUser) %>%
+             binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
+             predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else if (input$typeBinning == "breaks") {
+         vpcUser <- metaExpr({ 
+           ..(vpcUser) %>%
+             binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
+             predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else {
+         vpcUser <- metaExpr({ 
+           ..(vpcUser) %>%
+             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
+             predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
          })
        }
-       #strat, nopredcorrect, no censoring
-     } else if (input$typeVPC == "Binless" && !is.null(input$stratvar) && !input$isPred) {
+     }
+     
+     
+     if(input$typeVPC == "Binless" && input$isPred) {
        if(input$isAutoOptimize) {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)), y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             stratify(..(form)) %>%
-             binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
-             binlessfit(conf.level = ..(confidenceInterval())) %>%
-             vpcstats()
-         })
-       } else {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)), y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             stratify(..(form)) %>%
-             binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
-             binlessfit(conf.level = ..(confidenceInterval()), llam.qpred = ..(userLamStrat())) %>%
-             vpcstats()
-         })
-       }
-       #nostrat, optimized, predcorrect
-     } else if(input$typeVPC == "Binless" && input$isAutoOptimize && is.null(input$stratvar) && input$isPred) {
-       metaExpr({
-         observed(fileObs(), x= !!rlang::sym(..(input$xvar)), y= !!rlang::sym(..(input$yvar))) %>%
-           simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+       vpcUser <- metaExpr({
+        ..(vpcUser) %>%
            predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
            binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
            binlessfit(conf.level = ..(confidenceInterval())) %>%
            vpcstats()
        })
-       #nostrat, optimized, no predcorrect
-     } else if(input$typeVPC == "Binless" && input$isAutoOptimize && is.null(input$stratvar) && !input$isPred) {
-       metaExpr({
-         observed(fileObs(), x= !!rlang::sym(..(input$xvar)), y= !!rlang::sym(..(input$yvar))) %>%
-           simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-           binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
-           binlessfit(conf.level = ..(confidenceInterval())) %>%
-           vpcstats()
-       })
-       #nostrat, no optimized, no predcorrect
-     } else if (input$typeVPC == "Binless" && !input$isAutoOptimize  && is.null(input$stratvar) && !input$isPred) {
-       metaExpr({
-         observed(fileObs(), x= !!rlang::sym(..(input$xvar)), y= !!rlang::sym(..(input$yvar))) %>%
-           simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-           binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
-           binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(binlessInputs()$lamUser)) %>%
-           vpcstats()
-       })
-       #nostrat no optimized, predcorrect
-     } else if (input$typeVPC == "Binless" && !input$isAutoOptimize  && is.null(input$stratvar) && input$isPred) {
-       metaExpr({
-         observed(fileObs(), x= !!rlang::sym(..(input$xvar)), y= !!rlang::sym(..(input$yvar))) %>%
-           simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
+       } else {
+         vpcUser <- metaExpr({
+           ..(vpcUser) %>%
            predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
            binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
-           binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(binlessInputs()$lamUser), span = ..(binlessInputs()$spanUser)) %>%
+           binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(userLamStrat())) %>%
            vpcstats()
-       })
-       #Binning, strat, no pred correct, censoring
-     } else if (input$typeVPC == "Binning" && !is.null(input$stratvar) && !input$isPred && input$isCensoring) {
-       if (input$typeBinning == "x-variable") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
-             stratify(..(form)) %>%
-             binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "centers") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
-             stratify(..(form)) %>%
-             binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "breaks") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
-             stratify(..(form)) %>%
-             binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
-             stratify(..(form)) %>%
-             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
          })
        }
-       #Binning, strat, no pred correct, no censoring
-     } else if (input$typeVPC == "Binning" && !is.null(input$stratvar) && !input$isPred && !input$isCensoring) {
-       if (input$typeBinning == "x-variable") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             stratify(..(form)) %>%
-             binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "centers") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             stratify(..(form)) %>%
-             binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "breaks") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             stratify(..(form)) %>%
-             binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             stratify(..(form)) %>%
-             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       }
-       #Binning, strat, pred correct, no censoring
-     } else if (input$typeVPC == "Binning" && !is.null(input$stratvar) && input$isPred && !input$isCensoring) {
-       if (input$typeBinning == "x-variable") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             stratify(..(form)) %>%
-             binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
-             predcorrect(!!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "centers") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             stratify(..(form)) %>%
-             binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
-             predcorrect(!!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "breaks") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             stratify(..(form)) %>%
-             binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
-             predcorrect(!!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             stratify(..(form)) %>%
-             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
-             predcorrect(!!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       }
-       #Binning, strat, pred correct, censoring
-     } else if (input$typeVPC == "Binning" && !is.null(input$stratvar) && input$isPred && input$isCensoring) {
-       if (input$typeBinning == "x-variable") {
-       metaExpr({
-         observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-           simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-           censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
-           stratify(..(form)) %>%
-           binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
-           predcorrect(!!rlang::sym(..(input$predvar))) %>%
-           vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-       })
-       } else if (input$typeBinning == "centers") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
-             stratify(..(form)) %>%
-             binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
-             predcorrect(!!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "breaks") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
-             stratify(..(form)) %>%
-             binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
-             predcorrect(!!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
-             stratify(..(form)) %>%
-             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
-             predcorrect(!!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       }
-       #Binning, no strat, pred correct, no censoring
-     } else if (input$typeVPC == "Binning" && is.null(input$stratvar) && input$isPred && !input$isCensoring) {
-       if (input$typeBinning == "x-variable") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
-             predcorrect(!!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "centers") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
-             predcorrect(!!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "breaks") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
-             predcorrect(!!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
-             predcorrect(!!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       }
-       #Binning, no strat, pred correct, censoring
-     } else if (input$typeVPC == "Binning" && is.null(input$stratvar) && input$isPred && input$isCensoring) {
-       if (input$typeBinning == "x-variable") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
-             binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
-             predcorrect(!!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "centers") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
-             binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
-             predcorrect(!!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "breaks") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
-             binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
-             predcorrect(!!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
-             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
-             predcorrect(!!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       }
-       #Binning, no strat, no pred correct, censoring
-     } else if (input$typeVPC == "Binning" && is.null(input$stratvar) && !input$isPred && input$isCensoring) {
-         if (input$typeBinning == "x-variable") {
-           metaExpr({
-             observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-               simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-               censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
-               binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
-               vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-           })
-         } else if (input$typeBinning == "centers") {
-           metaExpr({
-             observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-               simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-               censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
-               binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
-               vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-           })
-         } else if (input$typeBinning == "breaks") {
-           metaExpr({
-             observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-               simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-               censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
-               binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
-               vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+     }
+       
+     if(input$typeVPC == "Binless" && !input$isPred) {
+       if(input$isAutoOptimize) {
+          vpcUser <- metaExpr({
+           ..(vpcUser) %>%
+            binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser)) %>%
+            binlessfit(conf.level = ..(confidenceInterval())) %>%
+            vpcstats()
            })
          } else {
-           metaExpr({
-             observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-               simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-               censoring(blq = !!rlang::sym(..(input$yvar)) < !!rlang::sym(..(input$censorvar)), lloq = !!rlang::sym(..(input$censorvar))) %>%
-               binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
-               vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+           vpcUser <- metaExpr({
+           ..(vpcUser) %>%
+            binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser)) %>%
+            binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(userLamStrat())) %>%
+            vpcstats()
            })
          }
-      #Binning, no strat, no pred correct, no censoring
-     } else if (input$typeVPC == "Binning" && is.null(input$stratvar) && !input$isPred && !input$isCensoring) {
-       if (input$typeBinning == "x-variable") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "centers") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "breaks") {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else {
-         metaExpr({
-           observed(fileObs(), x= !!rlang::sym(..(input$xvar)),  y= !!rlang::sym(..(input$yvar))) %>%
-             simulated(fileSim(), y= !!rlang::sym(..(input$yvar))) %>%
-             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       }
-     } else {
-       stop("Must upload data")
      }
+    })
+   vpcUser
   })
-   
- })
-
 
 
   plotAesthetics <- reactive({
@@ -459,10 +205,10 @@ server <- function(input, output, session) {
     linetype = c(input$lineTypeLo, input$lineTypeMed, input$lineTypeHi),
     color = c(input$colorTypeHi, input$colorTypeMed, input$colorTypeLo),
     color.fill = input$colorFill,
-    custom.theme = input$themeType,
+    #custom.theme = input$themeType,
     show.points = input$showPoints,
-    show.boundaries = input$showBoundaries,
-    show.stats = input$showStats,
+    #show.boundaries = input$showBoundaries,
+    #show.stats = input$showStats,
     legend.position = input$legendPosition,
     facet.scales = input$facetScales,
     xlabel = input$xlabel,
@@ -473,28 +219,40 @@ server <- function(input, output, session) {
     )
   })
   
+
+
  vpcPlot <- metaReactive2({
    req(vpc())
    isolate({
    if(length(input$stratvar > 1)) {
      strata <- paste(input$stratvar, collapse = " + ")
+     if(input$facetQuantile) {
+     form <- formula(paste0("qname","~", strata))
+     } else {
      form <- formula(paste0("~", strata))
+     }
    } else if(length(input$stratvar == 1)) {
      strata <- input$stratvar
+     if(input$facetQuantile) {
+     form <- formula(paste0("qname", "~", strata))
+   } else {
      form <- formula(paste0("~", strata))
+   }
    } else {
      form <- NULL
    }
-   
+ 
    if(input$typeVPC == "Binless") {
     g <- metaExpr({ 
          ggplot(
-           vpc()$stats, aes(x=x)) })
+           ..(vpc())$stats, aes(x=x)) 
+      })
     
    } else {
      g <- metaExpr({ 
        ggplot(
-         vpc()$stats, aes(x=xbin)) })
+         ..(vpc())$stats, aes(x=xbin))
+       })
    }
    })
      
@@ -526,9 +284,9 @@ server <- function(input, output, session) {
            geom_ribbon(aes(ymin=lo, ymax=hi, fill=qname, col=qname, group=qname), alpha=..(plotAesthetics()$color.fill), col=NA) +
            geom_line(aes(y=md, col=qname, group=qname)) +
            geom_line(aes(y=y, linetype=qname), size=1) +
-           geom_hline(data=unique(vpc()$data[, .(..(input$stratvar)), by = eval(..(input$censorvar))]),
+           geom_hline(data=unique(..(vpc())$data[, .(..(input$stratvar)), by = eval(..(input$censorvar))]),
                     aes(yintercept= !!as.symbol(..(input$censorvar))), linetype="dotted", size=1) +
-           geom_text(data=unique(vpc()$data[, .(ISM, LLOQ)]),
+           geom_text(data=unique(..(vpc())$data[, .(ISM, LLOQ)]),
                    aes(x=10, y=LLOQ, label=paste("LLOQ", LLOQ, sep="="),), vjust=-1) +
            scale_colour_manual(
           name=..(paste0("Simulated Percentiles\nMedian (lines) ", plotAesthetics()$conf.level * 100, "% CI (areas)")),
@@ -619,16 +377,135 @@ server <- function(input, output, session) {
      })
     }
      
+   if(input$isLogDV) {
+     g <-  isolate(metaExpr({
+       ..(g) + scale_y_log10()
+   }))
+   } 
+   
+   if(input$isLogX) {
+     g <-  isolate(metaExpr({
+       ..(g) + scale_x_log10()
+     }))
+   }
+   
+   if(input$facetQuantile) {
+       g <- isolate(metaExpr({
+         ..(g) +
+           facet_grid(..(form))
+       }))
+     }
+   
+   
+   if(!input$showStats) {
+     if(!is.null(form)) {
+       if(input$facetScales == "free") {
+     g <- isolate(metaExpr({
+       ggplot2::ggplot(vpc()$strat) + 
+         facet_wrap(..(form), scales = "free") +
+         theme(
+           legend.position=..(plotAesthetics()$legend.position),
+           legend.key.width=grid::unit(2, "cm")) +
+         labs(x= ..(plotAesthetics()$xlabel), y= ..(plotAesthetics()$ylabel))
+     }))
+       } else {
+         g <- isolate(metaExpr({
+           ggplot2::ggplot(vpc()$strat) + 
+             facet_grid(..(form)) +
+             theme(
+               legend.position=..(plotAesthetics()$legend.position),
+               legend.key.width=grid::unit(2, "cm")) +
+             labs(x= ..(plotAesthetics()$xlabel), y= ..(plotAesthetics()$ylabel))
+   }))
+       }
+     } else {
+       g <- isolate(metaExpr({
+         ggplot2::ggplot(vpc()$strat) + 
+           theme(
+             legend.position=..(plotAesthetics()$legend.position),
+             legend.key.width=grid::unit(2, "cm")) +
+           labs(x= ..(plotAesthetics()$xlabel), y= ..(plotAesthetics()$ylabel))  
+     }))
+     }
+   }
+     
       if(input$showPoints) {
        g <-  isolate(metaExpr({
-          ..(g) + ggplot2::geom_point(data=vpc()$obs, ggplot2::aes(x=x, y=y), size=1, alpha=0.4, show.legend=F) 
+          ..(g) + ggplot2::geom_point(data=..(vpc())$obs, ggplot2::aes(x=x, y=y), size=1, alpha=0.4, show.legend=F) 
         }))
       } else {
         g
       }
+   
+   if (input$showBoundaries) {
+     if(is.null(vpc()$rqss.obs.fits)) {
+       if (!is.null(vpc()$strat)) {
+         boundaries <- isolate(metaExpr({
+           bininfo(vpc())[, .(x=sort(unique(c(xleft, xright)))), by=names(vpc()$strat)]
+         }))
+       } else {
+         boundaries <- isolate(metaExpr({
+           bininfo(vpc())[, .(x=sort(unique(c(xleft, xright))))]
+         }))
+       }
+       if (input$showBinning) {
+         g <- isolate(metaExpr({
+           ..(g) + ggplot2::geom_vline(data=boundaries, ggplot2::aes(xintercept=x), size=rel(0.5), col="gray80") + 
+           ggplot2::theme(panel.grid=ggplot2::element_blank())
+         }))
+       }
+       g <- isolate(metaExpr({
+         ..(g) + ggplot2::geom_rug(data=boundaries, ggplot2::aes(x=x), sides="t", size=1)
+       }))
+     }
+   } else {
+     g
+   }
+   
+   
+   
  })
  
+ observe({
+   if(!input$isCensoring && input$isPlotBlq) {
+   showNotification("Please specify censoring value before plotting BLQ", type = "error")
+   }
+ })
  
+ blqPlot <- metaReactive2({
+   req(vpc())
+   req(input$isCensoring)
+   isolate({
+     if(length(input$stratvar > 1)) {
+       strata <- paste(input$stratvar, collapse = " + ")
+       form <- formula(paste0("~", strata))
+     } else if(length(input$stratvar == 1)) {
+       strata <- input$stratvar
+       form <- formula(paste0("~", strata))
+     } else {
+       form <- NULL
+     }
+   })
+   
+   if(input$isPlotBlq) {
+    g <- metaExpr({
+        ggplot(
+          ..(vpc())$pctblq, aes(x=x)) +
+   geom_ribbon(aes(x = xbin, ymin= lo, ymax = hi)) + 
+   geom_line(aes(x = xbin, y = y)) 
+    })
+   }
+   
+   if(!is.null(form)) {
+     g <- metaExpr({
+      ..(g) +
+     facet_wrap(..(form)) 
+   })
+   }
+   g
+   })
+  
+  
  observeEvent(input$generateCode, {
    code <- expandChain(
      quote({
@@ -636,7 +513,8 @@ server <- function(input, output, session) {
        library(vpcstats)
      }),
      output$vpccode(), 
-     output$plotVPC()
+     output$plotVPC(),
+     output$plotBlq()
    )
    
    displayCodeModal(
@@ -646,7 +524,11 @@ server <- function(input, output, session) {
  })
 
   output$plotVPC <- metaRender(renderPlot, {
-   ..(vpcPlot())
+    ..(vpcPlot())
+  })
+  
+  output$plotBlq <- metaRender(renderPlot, {
+    ..(blqPlot())
   })
   
   output$vpccode <-  metaRender(renderPrint,{
@@ -654,13 +536,20 @@ server <- function(input, output, session) {
   })
   
   output$tableObs <- renderDataTable({
-    datatable(vpc()$stats, rownames = FALSE)
+    datatable(vpc()$stats, rownames = FALSE) %>%
+      formatRound(c("y", "lo", "md", "hi"), digits = 2)
   })
   
-  # output$optLambda <- renderTable({
-  # t <- as.data.table(vpc()$llam.qpred)
-  # setnames(t, "Lambda")
-  #   })
+  output$optLambda <- renderTable({
+  l <- as.data.table(rev(vpc()$llam.qpred))
+  setnames(l, "Lambda")
+    })
+  
+  #spanOut <- 
+  output$optSpan <- renderTable({
+    s <- as.data.table(vpc()$span)
+    setnames(s, "Span")
+  })
   
   
 }
