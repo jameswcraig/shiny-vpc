@@ -318,8 +318,8 @@ server <- function(input, output, session) {
             geom_ribbon(aes(ymin=lo, ymax=hi, fill=qname, col=qname, group=qname), alpha=..(plotAesthetics()$color.fill), col=NA) +
             geom_line(aes(y=md, col=qname, group=qname)) +
             geom_line(aes(y=y, linetype=qname), size=1) +
-            geom_hline(aes(yintercept= 25), linetype="dotted", size=1) +
-            geom_text(aes(x=10, y=25, label=paste("LLOQ", 25, sep="="),), vjust=-1) +
+            geom_hline(aes(yintercept= ..(input$userLLOQ)), linetype="dotted", size=1) +
+            geom_text(aes(x=10, y=..(input$userLLOQ), label=paste("LLOQ", ..(input$userLLOQ), sep="="),), vjust=-1) +
             scale_colour_manual(
               name=..(paste0("Simulated Percentiles\nMedian (lines) ", plotAesthetics()$conf.level * 100, "% CI (areas)")),
               breaks=..(paste0("q", plotAesthetics()$qlabel)) ,
@@ -513,8 +513,8 @@ server <- function(input, output, session) {
        library(vpcstats)
      }),
      output$vpccode(), 
-     output$plotVPC(),
-     output$plotBlq()
+     output$plotVPC()#,
+     #output$plotBlq()
    )
    
    displayCodeModal(
