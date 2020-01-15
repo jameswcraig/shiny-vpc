@@ -127,7 +127,39 @@ server <- function(input, output, session) {
        }
      }
      
-     if (input$typeVPC == "Binning" && input$isPred) {
+     if (input$typeVPC == "Binning" && input$isPred && input$log_dv) {
+       if (input$typeBinning == "x-variable") {
+         vpcUser <- metaExpr({ 
+           ..(vpcUser) %>%
+             binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
+             predcorrect(pred = !!rlang::sym(..(input$predvar)), log = TRUE) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else if (input$typeBinning == "centers") {
+         vpcUser <- metaExpr({ 
+           ..(vpcUser) %>%
+             binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
+             predcorrect(pred = !!rlang::sym(..(input$predvar)), log = TRUE) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else if (input$typeBinning == "breaks") {
+         vpcUser <- metaExpr({ 
+           ..(vpcUser) %>%
+             binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
+             predcorrect(pred = !!rlang::sym(..(input$predvar)), log = TRUE) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       } else {
+         vpcUser <- metaExpr({ 
+           ..(vpcUser) %>%
+             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
+             predcorrect(pred = !!rlang::sym(..(input$predvar)), log = TRUE) %>%
+             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+         })
+       }
+     }
+     
+     if (input$typeVPC == "Binning" && input$isPred && !input$log_dv) {
        if (input$typeBinning == "x-variable") {
          vpcUser <- metaExpr({ 
            ..(vpcUser) %>%

@@ -5,18 +5,9 @@ ui <- dashboardPage(skin = "black",
                       file_observed_ui("obs"),
                       file_simulated_ui("sim"),
                       tags$br(),
-                      #fluidRow(
-                        #column(6,
                       selectizeInput("yvar", label = "Y Variable", choices = NULL, multiple = FALSE, width = '150%' ),
-                        #),
-                      # column(2,
-                      # checkboxInput("log_dv", label = "Log", width = '60%')
-                      # ),
-                      # column(1,
-                      # checkboxInput("exp_dv", label = "Exp", width = '60%'))
-                      #  ),
+                      checkboxInput("log_dv", label = "Log Y", width = '60%'),
                       selectizeInput("xvar", label = "X Variable", choices = NULL, multiple = FALSE ),
-                      #checkboxInput("log_x", label = "Log", width = '60%'),
                       selectizeInput("stratvar", label = "Stratification Variable(s)", choices = NULL, multiple = TRUE ),
                       checkboxInput("isPred", label = "Prediction Corrected", value = FALSE, width = NULL),
                       conditionalPanel(
