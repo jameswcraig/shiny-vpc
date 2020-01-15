@@ -48,7 +48,7 @@ ui <- dashboardPage(skin = "black",
                     dashboardBody(
                       fluidPage(
                         fluidRow(
-                          column(8,
+                          column(7,
                               wellPanel(
                                withSpinner(plotOutput("plotVPC", height = "625px"), type = 8),
                                conditionalPanel(condition = "input.isPlotBlq == true",
@@ -56,8 +56,8 @@ ui <- dashboardPage(skin = "black",
                                 style = "background: white;")
                               )
                           ),
-                          column(4,
-                              box(width = 12,
+                          column(5,
+                              wellPanel(width = 12,
                               tabsetPanel(
                                 tabPanel("VPC",
                                     fluidRow(
@@ -67,9 +67,8 @@ ui <- dashboardPage(skin = "black",
                                          column(6,
                                                 confidence_interval_ui("ci1")
                                          )
-                                       ),
+                                    ),
                                     fluidRow(
-                                         #),
                                   conditionalPanel(condition = "input.typeVPC == 'Binning'",
                                     column(6,
                                         tags$h4("Binning"),
@@ -88,20 +87,22 @@ ui <- dashboardPage(skin = "black",
                                       radioButtons("midPoint", label = "Midpoint", choices = c("xmedian", "xmean", "xmid", "xcenter"))
                                     ))
                                     ),
+                                  fluidRow(
                                   conditionalPanel(condition = "input.typeVPC == 'Binless'",
-                                    column(6,
+                                    column(12,
                                       conditionalPanel(condition = "input.isAutoOptimize == false",
-                                        binless_inputs_ui("binlessInputs1"),
+                                      binless_inputs_ui("binlessInputs1"),
                                       uiOutput("stratLambdas")),
                                       checkboxInput("isAutoOptimize", label = "Optimize Binless VPC", value = FALSE),
                                       conditionalPanel(condition = "input.isAutoOptimize == true",
                                       tableOutput("optLambda"),
                                       tableOutput("optSpan"))
+                                    )
                                   )
                                  )
                                ),
                                tabPanel("Customize Plot",
-                                        wellPanel(
+                                          fluidPage(
                                           fluidRow(
                                           column(3,
                                                  tags$h4("Line Type"),
