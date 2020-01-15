@@ -227,21 +227,11 @@ server <- function(input, output, session) {
    req(vpc())
    isolate({
    if(length(input$stratvar > 1)) {
-     strata <- paste(input$stratvar, collapse = " + ")
-     if(input$facetQuantile) {
-     form <- formula(paste0("qname","~", strata))
-     } else {
-     form <- formula(paste0("~", strata))
-     }
-   } else if(length(input$stratvar == 1)) {
-     strata <- input$stratvar
-     if(input$facetQuantile) {
-     form <- formula(paste0("qname", "~", strata))
+     facet_formula <- paste0("~", paste(input$stratvar, collapse = " + "))
+    } else if (length(input$stratvar == 1)) {
+     facet_formula <- paste0("~", input$stratvar)
    } else {
-     form <- formula(paste0("~", strata))
-   }
-   } else {
-     form <- NULL
+     facet_formula <- ""
    }
  
    if(input$typeVPC == "Binless") {
@@ -249,48 +239,100 @@ server <- function(input, output, session) {
          ggplot(
            ..(vpc())$stats, aes(x=x)) 
       })
-    
    } else {
-     g <- metaExpr({ 
-       ggplot(
-         ..(vpc())$stats, aes(x=xbin))
+    g <- metaExpr({ 
+         ggplot(
+           ..(vpc())$stats, aes(x=xbin)) 
        })
-   }
+     }
    })
-     
-  if(!is.null(form)) {
+   
+  if(facet_formula != "") {
+    if(input$facetQuantile) {
+      facet_formula <- as.formula(paste0("qname", facet_formula))
+    } else {
+      facet_formula <- as.formula(facet_formula)
+    }
     if(input$facetScales == "free") {
      g <- metaExpr({
-       ..(g) + 
-          facet_wrap(..(form), scales = "free") +
-          geom_ribbon(aes(ymin=lo, ymax=hi, fill=qname, col=qname, group=qname), alpha=0.1, col=NA) +
-          geom_line(aes(y=md, col=qname, group=qname)) +
-          geom_line(aes(y=y, linetype=qname), size=1) 
+       ..(g) +
+          facet_grid(..(facet_formula), scales = "free", as.table = FALSE)
      })
   } else {
     g <- metaExpr({
-      ..(g) + 
-        facet_grid(..(form)) +
-        geom_ribbon(aes(ymin=lo, ymax=hi, fill=qname, col=qname, group=qname), alpha=0.1, col=NA) +
-        geom_line(aes(y=md, col=qname, group=qname)) +
-        geom_line(aes(y=y, linetype=qname), size=1) 
-  })
+      ..(g) +
+        facet_grid(..(facet_formula), scales = "fixed", as.table = FALSE) 
+    })
+   }
   }
-    } else {
-    g
-  }
-    if(input$isCensoring) {
-      if(!is.null(form)) {
+   
+   if(facet_formula == "" && input$facetQuantile) {
+       facet_formula <- as.formula(paste0("~", "qname"))
+     if(input$facetScales == "free") {
+       g <- metaExpr({
+         ..(g) +
+           facet_wrap(..(facet_formula), scales = "free", as.table = TRUE)
+       })
+     } else {
+       g <- metaExpr({
+         ..(g) +
+           facet_wrap(..(facet_formula), scales = "fixed", as.table = TRUE)
+       })
+     }
+   }
+   
+   g <- metaExpr({
+     ..(g) + 
+     geom_ribbon(aes(ymin=lo, ymax=hi, fill=qname, col=qname, group=qname), alpha=..(plotAesthetics()$color.fill), col=NA) +
+     geom_line(aes(y=md, col=qname, group=qname)) +
+     geom_line(aes(y=y, linetype=qname), size=1)
+   })
+   
+   
+ isolate({
+   if(input$isCensoring) {
+     if(input$censorType == "Variable")
+      if(!is.null(input$stratvar)) {
      g <- metaExpr({
        ..(g) +
-           geom_ribbon(aes(ymin=lo, ymax=hi, fill=qname, col=qname, group=qname), alpha=..(plotAesthetics()$color.fill), col=NA) +
-           geom_line(aes(y=md, col=qname, group=qname)) +
-           geom_line(aes(y=y, linetype=qname), size=1) +
-           geom_hline(data=unique(..(vpc())$data[, .(..(input$stratvar)), by = eval(..(input$censorvar))]),
-                    aes(yintercept= !!as.symbol(..(input$censorvar))), linetype="dotted", size=1) +
-           geom_text(data=unique(..(vpc())$data[, .(ISM, LLOQ)]),
-                   aes(x=10, y=LLOQ, label=paste("LLOQ", LLOQ, sep="="),), vjust=-1) +
-           scale_colour_manual(
+           geom_hline(data=unique(..(vpc())$data[, .(LLOQ), by = eval(..(input$stratvar))]),
+                    aes(yintercept = !!as.symbol(..(input$censorvar))), linetype="dotted", size=1) +
+           geom_text(data=unique(..(vpc())$data[, .(LLOQ), by = eval(..(input$stratvar))]),
+                   aes(x=10, y=LLOQ, label=paste("LLOQ", LLOQ, sep="="),), vjust=-1)
+       })
+      } else {
+        g <- metaExpr({
+          ..(g) +
+            geom_hline(data=unique(..(vpc())$data[, .(LLOQ)]),
+                       aes(yintercept = !!as.symbol(..(input$censorvar))), linetype="dotted", size=1) +
+            geom_text(data=unique(..(vpc())$data[, .(LLOQ)]),
+                      aes(x=10, y=LLOQ, label=paste("LLOQ", LLOQ, sep="="),), vjust=-1)
+        })
+      } else {
+      g <-  metaExpr({
+        ..(g) +
+           geom_hline(aes(yintercept = ..(input$userLLOQ)), linetype="dotted", size=1) +
+           geom_text(aes(x=10, y=..(input$userLLOQ), label=paste("LLOQ", ..(input$userLLOQ), sep="="),), vjust=-1)
+      })
+     }
+    }
+   })
+ 
+    if(input$isLogDV) {
+       g <-  metaExpr({
+        ..(g) + scale_y_log10()
+        })
+      }
+ 
+    if(input$isLogX) {
+       g <-  metaExpr({
+        ..(g) + scale_x_log10()
+        })
+      }
+ 
+     g <- metaExpr({
+       ..(g) +
+          scale_colour_manual(
           name=..(paste0("Simulated Percentiles\nMedian (lines) ", plotAesthetics()$conf.level * 100, "% CI (areas)")),
           breaks=..(paste0("q", plotAesthetics()$qlabel)) ,
           values= ..(plotAesthetics()$color),
@@ -313,97 +355,13 @@ server <- function(input, output, session) {
           legend.position=..(plotAesthetics()$legend.position),
           legend.key.width=grid::unit(2, "cm")) +
          labs(x= ..(plotAesthetics()$xlabel), y= ..(plotAesthetics()$ylabel))
-    })
-      } else {
-        g <- metaExpr({
-          ..(g) +
-            geom_ribbon(aes(ymin=lo, ymax=hi, fill=qname, col=qname, group=qname), alpha=..(plotAesthetics()$color.fill), col=NA) +
-            geom_line(aes(y=md, col=qname, group=qname)) +
-            geom_line(aes(y=y, linetype=qname), size=1) +
-            geom_hline(aes(yintercept= ..(input$userLLOQ)), linetype="dotted", size=1) +
-            geom_text(aes(x=10, y=..(input$userLLOQ), label=paste("LLOQ", ..(input$userLLOQ), sep="="),), vjust=-1) +
-            scale_colour_manual(
-              name=..(paste0("Simulated Percentiles\nMedian (lines) ", plotAesthetics()$conf.level * 100, "% CI (areas)")),
-              breaks=..(paste0("q", plotAesthetics()$qlabel)) ,
-              values= ..(plotAesthetics()$color),
-              labels=..(paste0(plotAesthetics()$qlabel * 100, "%"))) +
-            scale_fill_manual(
-              name=..(paste0("Simulated Percentiles\nMedian (lines) ", plotAesthetics()$conf.level * 100, "% CI (areas)")),
-              breaks=..(paste0("q", plotAesthetics()$qlabel)),
-              values=..(plotAesthetics()$color),
-              labels=..(paste0(plotAesthetics()$qlabel * 100, "%"))) +
-            scale_linetype_manual(
-              name=..(paste0("Observed Percentiles\nMedian (lines) ", plotAesthetics()$conf.level * 100, "% CI (areas)")),
-              breaks=..(paste0("q", plotAesthetics()$qlabel)),
-              values= ..(plotAesthetics()$linetype),
-              labels=..(paste0(plotAesthetics()$qlabel * 100, "%"))) +
-            guides(
-              fill=guide_legend(order=2),
-              colour=guide_legend(order=2),
-              linetype=guide_legend(order=1)) +
-            theme(
-              legend.position=..(plotAesthetics()$legend.position),
-              legend.key.width=grid::unit(2, "cm")) +
-            labs(x= ..(plotAesthetics()$xlabel), y= ..(plotAesthetics()$ylabel))
-        })
-      }
-    } else {
-     g <- metaExpr({
-       ..(g) + 
-         geom_ribbon(aes(ymin=lo, ymax=hi, fill=qname, col=qname, group=qname), alpha=..(plotAesthetics()$color.fill), col=NA) +
-        geom_line(aes(y=md, col=qname, group=qname)) +
-        geom_line(aes(y=y, linetype=qname), size=1) +
-        scale_colour_manual(
-          name=..(paste0("Simulated Percentiles\nMedian (lines) ", plotAesthetics()$conf.level * 100, "% CI (areas)")),
-          breaks=..(paste0("q", plotAesthetics()$qlabel)) ,
-          values= ..(plotAesthetics()$color),
-          labels=..(paste0(plotAesthetics()$qlabel * 100, "%"))) +
-        scale_fill_manual(
-          name=..(paste0("Simulated Percentiles\nMedian (lines) ", plotAesthetics()$conf.level * 100, "% CI (areas)")),
-          breaks=..(paste0("q", plotAesthetics()$qlabel)),
-          values=..(plotAesthetics()$color),
-          labels=..(paste0(plotAesthetics()$qlabel * 100, "%"))) +
-        scale_linetype_manual(
-          name=..(paste0("Observed Percentiles\nMedian (lines) ", plotAesthetics()$conf.level * 100, "% CI (areas)")),
-          breaks=..(paste0("q", plotAesthetics()$qlabel)),
-          values= ..(plotAesthetics()$linetype),
-          labels=..(paste0(plotAesthetics()$qlabel * 100, "%"))) +
-        guides(
-          fill=guide_legend(order=2),
-          colour=guide_legend(order=2),
-          linetype=guide_legend(order=1)) +
-        theme(
-          legend.position=..(plotAesthetics()$legend.position),
-          legend.key.width=grid::unit(2, "cm")) +
-        labs(x= ..(plotAesthetics()$xlabel), y= ..(plotAesthetics()$ylabel))
-     })
-    }
-     
-   if(input$isLogDV) {
-     g <-  isolate(metaExpr({
-       ..(g) + scale_y_log10()
-   }))
-   } 
-   
-   if(input$isLogX) {
-     g <-  isolate(metaExpr({
-       ..(g) + scale_x_log10()
-     }))
-   }
-   
-   if(input$facetQuantile) {
-       g <- isolate(metaExpr({
-         ..(g) +
-           facet_grid(..(form))
-       }))
-     }
-   
-   
-   if(!input$showStats) {
-     if(!is.null(form)) {
+ })
+
+   if(!input$showStats && input$typeVPC == "Binning") {
+     if(facet_formula != "") {
        if(input$facetScales == "free") {
      g <- isolate(metaExpr({
-       ggplot2::ggplot(vpc()$strat) + 
+       ggplot2::ggplot(vpc()$strat) +
          facet_wrap(..(form), scales = "free") +
          theme(
            legend.position=..(plotAesthetics()$legend.position),
@@ -412,8 +370,8 @@ server <- function(input, output, session) {
      }))
        } else {
          g <- isolate(metaExpr({
-           ggplot2::ggplot(vpc()$strat) + 
-             facet_grid(..(form)) +
+           ggplot2::ggplot(vpc()$strat) +
+             facet_grid(..(facet_formula)) +
              theme(
                legend.position=..(plotAesthetics()$legend.position),
                legend.key.width=grid::unit(2, "cm")) +
@@ -422,23 +380,23 @@ server <- function(input, output, session) {
        }
      } else {
        g <- isolate(metaExpr({
-         ggplot2::ggplot(vpc()$strat) + 
+         ggplot2::ggplot(vpc()$strat) +
            theme(
              legend.position=..(plotAesthetics()$legend.position),
              legend.key.width=grid::unit(2, "cm")) +
-           labs(x= ..(plotAesthetics()$xlabel), y= ..(plotAesthetics()$ylabel))  
+           labs(x= ..(plotAesthetics()$xlabel), y= ..(plotAesthetics()$ylabel))
      }))
      }
    }
-     
+
       if(input$showPoints) {
        g <-  isolate(metaExpr({
-          ..(g) + ggplot2::geom_point(data=..(vpc())$obs, ggplot2::aes(x=x, y=y), size=1, alpha=0.4, show.legend=F) 
+          ..(g) + ggplot2::geom_point(data=..(vpc())$obs, ggplot2::aes(x=x, y=y), size=1, alpha=0.4, show.legend=F)
         }))
       } else {
         g
       }
-   
+
    if (input$showBoundaries) {
      if(is.null(vpc()$rqss.obs.fits)) {
        if (!is.null(vpc()$strat)) {
@@ -452,7 +410,7 @@ server <- function(input, output, session) {
        }
        if (input$showBinning) {
          g <- isolate(metaExpr({
-           ..(g) + ggplot2::geom_vline(data=boundaries, ggplot2::aes(xintercept=x), size=rel(0.5), col="gray80") + 
+           ..(g) + ggplot2::geom_vline(data=boundaries, ggplot2::aes(xintercept=x), size=rel(0.5), col="gray80") +
            ggplot2::theme(panel.grid=ggplot2::element_blank())
          }))
        }
@@ -463,8 +421,8 @@ server <- function(input, output, session) {
    } else {
      g
    }
-   
-   
+
+   g
    
  })
  
