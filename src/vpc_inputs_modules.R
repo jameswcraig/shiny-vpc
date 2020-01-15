@@ -121,9 +121,10 @@ return(
 quantiles_ui <- function(id){
   ns <- NS(id)
   tagList(
-         tags$h4("Quantiles"),
-         tags$hr(),
-         textInput(ns("piUser"), label = "", value = c("0.05,0.5,0.95"))
+    tags$br(),
+    #tags$style("piUser {font-size:75px;height:75px;}"),
+         textInput(ns("piUser"), label = "Quantiles", value = c("0.05,0.5,0.95")),
+    tags$hr()
    )
 }
 
@@ -146,9 +147,10 @@ quantiles_server <- function(input, output, session) {
 confidence_interval_ui <- function(id){
   ns <- NS(id)
   tagList(
-    tags$h4("Confidence Level"),
+    tags$br(),
+    numericInput(ns("ciUser"), label = "Confidence Level", value = .95),
     tags$hr(),
-    numericInput(ns("ciUser"), label = "", value = .95)
+
   )
 }
 
