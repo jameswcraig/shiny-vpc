@@ -552,16 +552,16 @@ server <- function(input, output, session) {
       formatRound(c("y", "lo", "md", "hi"), digits = 2)
   })
   
-  output$optLambda <- renderTable({
-  l <- as.data.table(rev(vpc()$llam.qpred))
-  setnames(l, "Lambda")
-    })
+  # output$optLambda <- renderTable({
+  # l <- as.data.table(rev(vpc()$llam.qpred))
+  # setnames(l, "Lambda")
+  #   })
   
   #spanOut <- 
-  output$optSpan <- renderTable({
-    s <- as.data.table(vpc()$span)
-    setnames(s, "Span")
-  })
+  # output$optSpan <- renderTable({
+  #   s <- as.data.table(vpc()$span)
+  #   setnames(s, "Span")
+  # })
   
   
 }
