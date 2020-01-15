@@ -170,6 +170,7 @@ server <- function(input, output, session) {
            vpcstats()
        })
        } else {
+         if(!is.null(form)) {
          vpcUser <- metaExpr({
            ..(vpcUser) %>%
            predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
@@ -177,6 +178,15 @@ server <- function(input, output, session) {
            binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(userLamStrat())) %>%
            vpcstats()
          })
+         } else {
+           vpcUser <- metaExpr({
+           ..(vpcUser) %>%
+           predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
+           binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
+           binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(binlessInputs()$lamUser), span = ..(binlessInputs()$spanUser)) %>%
+           vpcstats() 
+           })
+         }
        }
      }
        
@@ -189,17 +199,26 @@ server <- function(input, output, session) {
             vpcstats()
            })
          } else {
+           if(!is.null(form)) {
            vpcUser <- metaExpr({
            ..(vpcUser) %>%
             binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser)) %>%
             binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(userLamStrat())) %>%
             vpcstats()
            })
+           } else {
+           vpcUser <- metaExpr({
+           ..(vpcUser) %>%
+            binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser)) %>%
+            binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(binlessInputs()$lamUser)) %>%
+            vpcstats() 
+           })
          }
+       }
      }
-    })
+   })
    vpcUser
-  })
+ })
 
 
   plotAesthetics <- reactive({
@@ -450,9 +469,10 @@ server <- function(input, output, session) {
    if(input$isPlotBlq) {
     g <- metaExpr({
         ggplot(
-          ..(vpc())$pctblq, aes(x=x)) +
-   geom_ribbon(aes(x = xbin, ymin= lo, ymax = hi)) + 
-   geom_line(aes(x = xbin, y = y)) 
+          ..(vpc())$pctblq) +
+        geom_ribbon(aes(x = xbin, ymin= lo, ymax = hi), fill = "green2", alpha = .2) + 
+        geom_line(aes(x = xbin, y = y)) + 
+        labs(x= ..(plotAesthetics()$xlabel), y= "% BLQ")
     })
    }
    

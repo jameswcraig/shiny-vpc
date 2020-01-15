@@ -17,7 +17,7 @@ binless_inputs_ui <- function(id) {
   ns <- NS(id)
   
   tagList(
-         tags$h4("Binless"),
+         tags$h4("Binless Parameters"),
          tags$hr(),
          sliderInput(ns("interval"), label = "Optimization Interval", min = -2, max = 10, value = c(0, 7)), 
          tags$h5("Additive Quantile Regression"),
@@ -56,14 +56,6 @@ binless_inputs <- function(input, output, session) {
     input$interval
   })
   
-  # 
-  # observe({
-  #   updateSliderInput(session, "span", value = vpc.Binless()$span)
-  #   updateSliderInput(session, "lambdaLo", value = vpc.Binless()$llam.qpred[[1]], min = input$interval[[1]], max = input$interval[[2]])
-  #   updateSliderInput(session, "lambdaMed", value = vpc.Binless()$llam.qpred[[2]],min = input$interval[[1]], max = input$interval[[2]])
-  #   updateSliderInput(session, "lambdaHi", value = vpc.Binless()$llam.qpred[[3]], min = input$interval[[1]], max = input$interval[[2]])
-  # })
-  # 
   
   return( reactive({
     list(lamUser = lamUser(),
