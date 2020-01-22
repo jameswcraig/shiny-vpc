@@ -317,63 +317,63 @@ server <- function(input, output, session) {
      })
      }
      
-     # 
-     # if(input$typeVPC == "Binless" && input$isPred) {
-     #   if(input$isAutoOptimize) {
-     #   vpcUser <- metaExpr({
-     #    ..(vpcUser) %>%
-     #       predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
-     #       binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
-     #       binlessfit(conf.level = ..(confidenceInterval())) %>%
-     #       vpcstats()
-     #   })
-     #   } else {
-     #     if(!is.null(form)) {
-     #     vpcUser <- metaExpr({
-     #       ..(vpcUser) %>%
-     #       predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
-     #       binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
-     #       binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(userStratLvl())) %>%
-     #       vpcstats()
-     #     })
-     #     } else {
-     #       vpcUser <- metaExpr({
-     #       ..(vpcUser) %>%
-     #       predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
-     #       binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
-     #       binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(binlessInputs()$lamUser), span = ..(binlessInputs()$spanUser)) %>%
-     #       vpcstats() 
-     #       })
-     #     }
-     #   }
-     # }
-     #   
-     # if(input$typeVPC == "Binless" && !input$isPred) {
-     #   if(input$isAutoOptimize) {
-     #      vpcUser <- metaExpr({
-     #       ..(vpcUser) %>%
-     #        binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser)) %>%
-     #        binlessfit(conf.level = ..(confidenceInterval())) %>%
-     #        vpcstats()
-     #       })
-     #     } else {
-     #       if(!is.null(form)) {
-     #       vpcUser <- metaExpr({
-     #       ..(vpcUser) %>%
-     #        binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser)) %>%
-     #        binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(userStratLvl())) %>%
-     #        vpcstats()
-     #       })
-     #       } else {
-     #       vpcUser <- metaExpr({
-     #       ..(vpcUser) %>%
-     #        binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser)) %>%
-     #        binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(binlessInputs()$lamUser)) %>%
-     #        vpcstats() 
-     #       })
-     #     }
-     #   }
-     # }
+
+     if(input$typeVPC == "Binless" && input$isPred) {
+       if(input$isAutoOptimize) {
+       vpcUser <- metaExpr({
+        ..(vpcUser) %>%
+           predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
+           binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
+           binlessfit(conf.level = ..(confidenceInterval())) %>%
+           vpcstats()
+       })
+       } else {
+         if(!is.null(form)) {
+         vpcUser <- metaExpr({
+           ..(vpcUser) %>%
+           predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
+           binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
+           binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(userStratLvl())) %>%
+           vpcstats()
+         })
+         } else {
+           vpcUser <- metaExpr({
+           ..(vpcUser) %>%
+           predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
+           binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
+           binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(binlessInputs()$lamUser), span = ..(binlessInputs()$spanUser)) %>%
+           vpcstats()
+           })
+         }
+       }
+     }
+
+     if(input$typeVPC == "Binless" && !input$isPred) {
+       if(input$isAutoOptimize) {
+          vpcUser <- metaExpr({
+           ..(vpcUser) %>%
+            binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser)) %>%
+            binlessfit(conf.level = ..(confidenceInterval())) %>%
+            vpcstats()
+           })
+         } else {
+           if(!is.null(form)) {
+           vpcUser <- metaExpr({
+           ..(vpcUser) %>%
+            binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser)) %>%
+            binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(userStratLvl())) %>%
+            vpcstats()
+           })
+           } else {
+           vpcUser <- metaExpr({
+           ..(vpcUser) %>%
+            binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser)) %>%
+            binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(binlessInputs()$lamUser)) %>%
+            vpcstats()
+           })
+         }
+       }
+     }
    })
    vpcUser
  })
