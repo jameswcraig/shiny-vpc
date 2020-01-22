@@ -14,7 +14,6 @@ server <- function(input, output, session) {
     updateSelectizeInput(session, inputId = "stratvar", choices = names(fileObs()))
     updateSelectizeInput(session, inputId = "predvar", choices = names(fileObs()))
     updateSelectizeInput(session, inputId = "censorvar", choices = names(fileObs()))
-    
   })
 
  binlessInputs <- callModule(binless_inputs, "binlessInputs1")
@@ -45,24 +44,17 @@ server <- function(input, output, session) {
  })
  
  userStratNames <- reactive({
-   # l <- lapply(stratdata(), unique)
-   # stratlevels <- as.character(unlist(l))
-   # stratname <- names(unlist(l))
-   # stratname <- gsub('[[:digit:]]+', '', stratname)
-   # name <- sort(paste0(stratname, stratlevels))
    dt <- vector("list", length = length(stratnamelvl()))
    for (i in seq_along(stratnamelvl())) {
      dt[[i]] <- eval(parse(text = paste0("input$", stratnamelvl()[[i]])))
    }
    dt <- as.data.table(dt)
-   # isolate({
-   #    setnames(dt, name)
-   #}) #Changes variable names in table output from v1 to stratlevel
+   setnames(dt, stratnamelvl())
  })
  
  
  userStratLvl <- metaReactive({
-   as.data.table(lapply(userStratNames(), getnum))
+   as.data.table(..(lapply(userStratNames(), getnum)))
  })
  
  

@@ -88,15 +88,15 @@ ui <- dashboardPagePlus(
                  fluidRow(
                    conditionalPanel(condition = "input.typeVPC == 'Binless'",
                                     column(12,
+                                           tags$h4("Binless Parameters"),
+                                           tags$hr(),
                                            conditionalPanel(condition = "input.isAutoOptimize == false",
-                                                            binless_inputs_ui("binlessInputs1")),
-                                           checkboxInput("isAutoOptimize", label = "Optimize Binless VPC", value = FALSE),
-                                           checkboxInput("isBinlessStrata", label = "Binless by Strata", value = FALSE),
-                                           conditionalPanel("input.isBinlessStrata == true",
+                                                            binless_inputs_ui("binlessInputs1"),
+                                                            checkboxInput("isBinlessStrata", label = "Binless by Strata", value = FALSE)),
+                                          checkboxInput("isAutoOptimize", label = "Auto-Optimize", value = FALSE),
+                                           conditionalPanel("input.isBinlessStrata == true && input.isAutoOptimize == false",
                                              uiOutput("stratLambdas")),
-                                             
-                                           #conditionalPanel(condition = "input.isAutoOptimize == true",
-                                    )
+                                          )
                    )
                  )
                )
