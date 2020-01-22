@@ -136,11 +136,13 @@ quantiles_server <- function(input, output, session) {
 }
 
 
+
+
 confidence_interval_ui <- function(id){
   ns <- NS(id)
   tagList(
     tags$br(),
-    numericInput(ns("ciUser"), label = "Confidence Level", value = .95),
+    numericInput(ns("ciUser"), label = "Confidence Level", value = .95, step = .01),
     tags$hr(),
 
   )

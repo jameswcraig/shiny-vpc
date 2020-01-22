@@ -27,35 +27,87 @@ server <- function(input, output, session) {
    input$stratvar
  })
  
- lamStrat <- reactive({
-   req(input$stratvar)
-   len <- list(numeric(length(stratlist())))
-   # lev <- length(levels(factor(stratlist)))
-   for (i in 1:length(stratlist())) {
-     len[[i]] <-  fluidRow(
-       column(6,
-              sliderInput(inputId = paste0('lambdaStratHi0_', i), label = paste0("Lambda Hi 0", i),value = 3, min = 0, max = 7, step = .01),
-              sliderInput(inputId = paste0('lambdaStratMed0_', i), label = paste0("Lambda Med 0", i), value = 3, min = 0, max = 7, step = .01),
-              sliderInput(inputId = paste0('lambdaStratLo0_', i), label = paste0("Lambda Lo 0", i), value = 3, min = 0, max = 7, step = .01)
-       ),
-       column(6,                                
-              sliderInput(inputId = paste0('lambdaStratHi1_', i), label = paste0("Lambda Hi 1", i),value = 3, min = 0, max = 7, step = .01),
-              sliderInput(inputId = paste0('lambdaStratMed1_', i), label = paste0("Lambda Med 1", i), value = 3, min = 0, max = 7, step = .01),
-              sliderInput(inputId = paste0('lambdaStratLo1_', i), label = paste0("Lambda Lo 1", i), value = 3, min = 0, max = 7, step = .01)
-       )
-     )
+ stratdata <- reactive({
+   subset(fileObs(), select = stratlist())
+ })
+ 
+ output$stratTable <- renderTable({
+   lapply(stratdata(), unique)
+ })
+ 
+ stratnamelvl <- reactive({
+   l <- lapply(stratdata(), unique)
+   stratlevels <- as.character(unlist(l))
+   stratname <- names(unlist(l))
+   stratname <- gsub('[[:digit:]]+', '', stratname)
+   name <- sort(paste0(stratname, stratlevels))
+   return(name)
+ })
+ 
+ userStratNames <- reactive({
+   # l <- lapply(stratdata(), unique)
+   # stratlevels <- as.character(unlist(l))
+   # stratname <- names(unlist(l))
+   # stratname <- gsub('[[:digit:]]+', '', stratname)
+   # name <- sort(paste0(stratname, stratlevels))
+   dt <- vector("list", length = length(stratnamelvl()))
+   for (i in seq_along(stratnamelvl())) {
+     dt[[i]] <- eval(parse(text = paste0("input$", stratnamelvl()[[i]])))
    }
-   len
+   dt <- as.data.table(dt)
+   # isolate({
+   #    setnames(dt, name)
+   #}) #Changes variable names in table output from v1 to stratlevel
  })
  
- output$stratLambdas <- renderUI(lamStrat())
  
- userLamStrat <- metaReactive({
-   data.table(
-     group0 = c(..(input$lambdaStratLo0_1), ..(input$lambdaStratMed0_1), ..(input$lambdaStratHi0_1)),
-     group1 = c(..(input$lambdaStratLo1_1), ..(input$lambdaStratMed1_1), ..(input$lambdaStratHi1_1))
-   )
+ userStratLvl <- metaReactive({
+   as.data.table(lapply(userStratNames(), getnum))
  })
+ 
+ 
+ output$lamTable <- renderTable({
+   req(userStratNames())
+   setnames(userStratNames(), stratnamelvl())
+ })
+ 
+ 
+ 
+ t <- reactive({
+   req(input$stratvar)
+   l <- render_lam_strat(stratlist(), stratdata())
+ })
+ 
+ tt <- reactive({
+   req(input$stratvar)
+   ll <- render_strat_binning(stratlist(), stratdata())
+ })
+ 
+ 
+ output$stratpanels <- renderUI(tt())
+ 
+ output$stratLambdas <- renderUI(t())
+ 
+ # userLamStrat <- metaReactive({
+ #   data.table(
+ #     group0 = c(..(input$lambdaStratLo0_1), ..(input$lambdaStratMed0_1), ..(input$lambdaStratHi0_1)),
+ #     group1 = c(..(input$lambdaStratLo1_1), ..(input$lambdaStratMed1_1), ..(input$lambdaStratHi1_1))
+ #   )
+ # })
+ 
+ stratdata <- reactive({
+   subset(fileObs(), select = input$stratvar)
+ })
+
+ namesstrat <- reactive({
+   names(stratdata())
+ })
+ 
+ stratlvl <- reactive({
+   l <- lapply(stratdata(), unique)
+   l <- lapply(l, sort)
+ })
+ 
  
  vpc <- metaReactive2({
    req(input$buttonPlot) 
@@ -99,155 +151,229 @@ server <- function(input, output, session) {
        })
      }
      
-     if (input$typeVPC == "Binning" && !input$isPred) {
-       if (input$typeBinning == "x-variable") {
-        vpcUser <- metaExpr({ 
+     
+     if (input$typeVPC == "Binning" && !input$isBinStrat)  {
+      if(input$typeBinning == "x-variable")
+        vpcUser <- metaExpr({
+         ..(vpcUser) %>%
+           binning(bin =!!rlang::sym(..(input$xvar)))
+        })
+      
+     if (input$typeBinning == "centers") {
+      centers <- as.numeric(unlist(strsplit(input$centers, split = ",")))
+       vpcUser <- metaExpr({
+         ..(vpcUser) %>%
+           binning(bin = "centers", centers = ..(centers))
+     })
+     }
+      
+      if(input$typeBinning == "breaks") {
+      breaks <- as.numeric(unlist(strsplit(input$breaks, split = ",")))
+      vpcUser <- metaExpr({
+        ..(vpcUser) %>%
+          binning(bin = "breaks", breaks = ..(breaks))
+      })
+     }
+      
+      if(input$typeBinning == "breaks") {
+        breaks <- as.numeric(unlist(strsplit(input$breaks, split = ",")))
+        vpcUser <- metaExpr({
           ..(vpcUser) %>%
-             binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "centers") {
+            binning(bin = "breaks", breaks = ..(breaks))
+        })
+      }
+    
+      if(isFALSE(input$typeBinning %in% c("breaks", "centers", "x-variable"))) {
+        vpcUser <- metaExpr({
+          ..(vpcUser) %>%
+            binning(bin = ..(input$typeBinning), nbins = ..(input$nbins))
+      })
+      }
+     }
+         
+         
+     
+     
+     #Different binning by strata
+     if (input$typeVPC == "Binning" && input$isBinStrat && !is.null(form)) { # && !input$isPred && input$isBinStrat && !is.null(form)) {
+       #1 Strat variable, 2 level
+        if (length(stratlvl()[[1]]) == 2) {
+         b1 <- input$typeBinning1
+         b2 <- input$typeBinning2
+         l1 <- list(stratlvl()[[1]][[1]])
+         l2 <- list(stratlvl()[[1]][[2]])
+         names(l1) <- namesstrat()
+         names(l2) <- namesstrat()
+         if(b1 == "centers") {
+           centers1 <- as.numeric(unlist(strsplit(input$centers1, split = ",")))
+         } else {
+           centers1 <- NULL
+         }
+         if(b1 == "breaks") {
+           breaks1 <- as.numeric(unlist(strsplit(input$breaks1, split = ",")))
+         } else {
+           breaks1 <- NULL
+         }
+         if(b2 == "centers") {
+           centers2 <- as.numeric(unlist(strsplit(input$centers2, split = ",")))
+         } else {
+           centers2 <- NULL
+         }
+         if(b2 == "breaks") {
+           breaks2 <- as.numeric(unlist(strsplit(input$breaks2, split = ",")))
+         } else {
+           breaks2 <- NULL
+         }
+         
          vpcUser <- metaExpr({ 
            ..(vpcUser) %>%
-             binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "breaks") {
-         vpcUser <- metaExpr({ 
-           ..(vpcUser) %>%
-             binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else {
-         vpcUser <- metaExpr({ 
-           ..(vpcUser) %>%
-             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+             binning(stratum = ..(l1), bin = ..(b1), xbin = ..(input$midPoint), nbins = ..(input$nbins1), centers = ..(centers1), breaks = ..(breaks1), by.strata = T) %>%
+             binning(stratum = ..(l2), bin = ..(b2), xbin = ..(input$midPoint), nbins = ..(input$nbins2), centers = ..(centers2), breaks = ..(breaks2), by.strata = T) 
          })
        }
+        if (length(stratlvl()[[1]]) == 3) {
+         b1 <- input$typeBinning1
+         b2 <- input$typeBinning2
+         b3 <- input$typeBinning3
+         l1 <- list(stratlvl()[[1]][[1]])
+         l2 <- list(stratlvl()[[1]][[2]])
+         l3 <- list(stratlvl()[[1]][[3]])
+         names(l1) <- namesstrat()
+         names(l2) <- namesstrat()
+         names(l3) <- namesstrat()
+         vpcUser <- metaExpr({ 
+           ..(vpcUser) %>%
+             binning(stratum = ..(l1), bin = ..(b1), xbin = ..(input$midPoint), by.strata = T) %>%
+             binning(stratum = ..(l2), bin = ..(b2), xbin = ..(input$midPoint), by.strata = T) %>%
+             binning(stratum = ..(l3), bin = ..(b3), xbin = ..(input$midPoint), by.strata = T)
+         })
+        }
+         if (length(stratlvl()[[1]]) == 4) {
+           b1 <- input$typeBinning1
+           b2 <- input$typeBinning2
+           b3 <- input$typeBinning3
+           b4 <- input$typeBinning4
+           l1 <- list(stratlvl()[[1]][[1]])
+           l2 <- list(stratlvl()[[1]][[2]])
+           l3 <- list(stratlvl()[[1]][[3]])
+           l4 <- list(stratlvl()[[1]][[4]])
+           names(l1) <- namesstrat()
+           names(l2) <- namesstrat()
+           names(l3) <- namesstrat()
+           names(l4) <- namesstrat()
+           vpcUser <- metaExpr({ 
+             ..(vpcUser) %>%
+               binning(stratum = ..(l1), bin = ..(b1), xbin = ..(input$midPoint), by.strata = T) %>%
+               binning(stratum = ..(l2), bin = ..(b2), xbin = ..(input$midPoint), by.strata = T) %>%
+               binning(stratum = ..(l3), bin = ..(b3), xbin = ..(input$midPoint), by.strata = T) %>%
+               binning(stratum = ..(l4), bin = ..(b4), xbin = ..(input$midPoint), by.strata = T) 
+           })
+         }
+         if (length(stratlvl()[[1]]) == 5) {
+           b1 <- input$typeBinning1
+           b2 <- input$typeBinning2
+           b3 <- input$typeBinning3
+           b4 <- input$typeBinning4
+           b5 <- input$typeBinning5
+           l1 <- list(stratlvl()[[1]][[1]])
+           l2 <- list(stratlvl()[[1]][[2]])
+           l3 <- list(stratlvl()[[1]][[3]])
+           l4 <- list(stratlvl()[[1]][[4]])
+           l5 <- list(stratlvl()[[1]][[5]])
+           names(l1) <- namesstrat()
+           names(l2) <- namesstrat()
+           names(l3) <- namesstrat()
+           names(l4) <- namesstrat()
+           names(l5) <- namesstrat()
+           vpcUser <- metaExpr({ 
+             ..(vpcUser) %>%
+               binning(stratum = ..(l1), bin = ..(b1), xbin = ..(input$midPoint), by.strata = T) %>%
+               binning(stratum = ..(l2), bin = ..(b2), xbin = ..(input$midPoint), by.strata = T) %>%
+               binning(stratum = ..(l3), bin = ..(b3), xbin = ..(input$midPoint), by.strata = T) %>%
+               binning(stratum = ..(l4), bin = ..(b4), xbin = ..(input$midPoint), by.strata = T) %>%
+               binning(stratum = ..(l5), bin = ..(b5), xbin = ..(input$midPoint), by.strata = T) 
+           })
+         }
+       }
+     
+     if (input$typeVPC == "Binning" && input$isPred && !input$log_dv) {
+       vpcUser <- metaExpr({
+         ..(vpcUser) %>%
+           predcorrect(pred = !!rlang::sym(..(input$predvar)))
+       })
      }
      
      if (input$typeVPC == "Binning" && input$isPred && input$log_dv) {
-       if (input$typeBinning == "x-variable") {
-         vpcUser <- metaExpr({ 
-           ..(vpcUser) %>%
-             binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
-             predcorrect(pred = !!rlang::sym(..(input$predvar)), log = TRUE) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "centers") {
-         vpcUser <- metaExpr({ 
-           ..(vpcUser) %>%
-             binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
-             predcorrect(pred = !!rlang::sym(..(input$predvar)), log = TRUE) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "breaks") {
-         vpcUser <- metaExpr({ 
-           ..(vpcUser) %>%
-             binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
-             predcorrect(pred = !!rlang::sym(..(input$predvar)), log = TRUE) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else {
-         vpcUser <- metaExpr({ 
-           ..(vpcUser) %>%
-             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
-             predcorrect(pred = !!rlang::sym(..(input$predvar)), log = TRUE) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       }
-     }
-     
-     if (input$typeVPC == "Binning" && input$isPred && !input$log_dv) {
-       if (input$typeBinning == "x-variable") {
-         vpcUser <- metaExpr({ 
-           ..(vpcUser) %>%
-             binning(bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint)) %>%
-             predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "centers") {
-         vpcUser <- metaExpr({ 
-           ..(vpcUser) %>%
-             binning(bin = "centers", centers = ..(as.numeric(unlist(strsplit(input$centers, split = ",")))), xbin = ..(input$midPoint)) %>%
-             predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else if (input$typeBinning == "breaks") {
-         vpcUser <- metaExpr({ 
-           ..(vpcUser) %>%
-             binning(bin = "breaks", breaks = ..(as.numeric(unlist(strsplit(input$breaks, split = ",")))), xbin = ..(input$midPoint)) %>%
-             predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       } else {
-         vpcUser <- metaExpr({ 
-           ..(vpcUser) %>%
-             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins), xbin = ..(input$midPoint)) %>%
-             predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
-             vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
-         })
-       }
-     }
-     
-     
-     if(input$typeVPC == "Binless" && input$isPred) {
-       if(input$isAutoOptimize) {
-       vpcUser <- metaExpr({
-        ..(vpcUser) %>%
-           predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
-           binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
-           binlessfit(conf.level = ..(confidenceInterval())) %>%
-           vpcstats()
-       })
-       } else {
-         if(!is.null(form)) {
          vpcUser <- metaExpr({
            ..(vpcUser) %>%
-           predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
-           binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
-           binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(userLamStrat())) %>%
-           vpcstats()
+             predcorrect(pred = !!rlang::sym(..(input$predvar)), log = TRUE)
          })
-         } else {
-           vpcUser <- metaExpr({
-           ..(vpcUser) %>%
-           predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
-           binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
-           binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(binlessInputs()$lamUser), span = ..(binlessInputs()$spanUser)) %>%
-           vpcstats() 
-           })
-         }
        }
+     
+     if (input$typeVPC == "Binning") {
+       vpcUser <- metaExpr({ 
+           ..(vpcUser) %>%
+              vpcstats(qpred = ..(userQuantiles()), conf.level = ..(confidenceInterval()))
+     })
      }
-       
-     if(input$typeVPC == "Binless" && !input$isPred) {
-       if(input$isAutoOptimize) {
-          vpcUser <- metaExpr({
-           ..(vpcUser) %>%
-            binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser)) %>%
-            binlessfit(conf.level = ..(confidenceInterval())) %>%
-            vpcstats()
-           })
-         } else {
-           if(!is.null(form)) {
-           vpcUser <- metaExpr({
-           ..(vpcUser) %>%
-            binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser)) %>%
-            binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(userLamStrat())) %>%
-            vpcstats()
-           })
-           } else {
-           vpcUser <- metaExpr({
-           ..(vpcUser) %>%
-            binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser)) %>%
-            binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(binlessInputs()$lamUser)) %>%
-            vpcstats() 
-           })
-         }
-       }
-     }
+     
+     # 
+     # if(input$typeVPC == "Binless" && input$isPred) {
+     #   if(input$isAutoOptimize) {
+     #   vpcUser <- metaExpr({
+     #    ..(vpcUser) %>%
+     #       predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
+     #       binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
+     #       binlessfit(conf.level = ..(confidenceInterval())) %>%
+     #       vpcstats()
+     #   })
+     #   } else {
+     #     if(!is.null(form)) {
+     #     vpcUser <- metaExpr({
+     #       ..(vpcUser) %>%
+     #       predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
+     #       binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
+     #       binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(userStratLvl())) %>%
+     #       vpcstats()
+     #     })
+     #     } else {
+     #       vpcUser <- metaExpr({
+     #       ..(vpcUser) %>%
+     #       predcorrect(pred = !!rlang::sym(..(input$predvar))) %>%
+     #       binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser), loess.ypc = TRUE) %>%
+     #       binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(binlessInputs()$lamUser), span = ..(binlessInputs()$spanUser)) %>%
+     #       vpcstats() 
+     #       })
+     #     }
+     #   }
+     # }
+     #   
+     # if(input$typeVPC == "Binless" && !input$isPred) {
+     #   if(input$isAutoOptimize) {
+     #      vpcUser <- metaExpr({
+     #       ..(vpcUser) %>%
+     #        binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser)) %>%
+     #        binlessfit(conf.level = ..(confidenceInterval())) %>%
+     #        vpcstats()
+     #       })
+     #     } else {
+     #       if(!is.null(form)) {
+     #       vpcUser <- metaExpr({
+     #       ..(vpcUser) %>%
+     #        binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser)) %>%
+     #        binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(userStratLvl())) %>%
+     #        vpcstats()
+     #       })
+     #       } else {
+     #       vpcUser <- metaExpr({
+     #       ..(vpcUser) %>%
+     #        binlessaugment(qpred = ..(userQuantiles()), interval = ..(binlessInputs()$intervalUser)) %>%
+     #        binlessfit(conf.level = ..(confidenceInterval()), llam.quant = ..(binlessInputs()$lamUser)) %>%
+     #        vpcstats() 
+     #       })
+     #     }
+     #   }
+     # }
    })
    vpcUser
  })
@@ -477,11 +603,6 @@ server <- function(input, output, session) {
    
  })
  
- observe({
-   if(!input$isCensoring && input$isPlotBlq) {
-   showNotification("Please specify censoring value before plotting BLQ", type = "error")
-   }
- })
  
  blqPlot <- metaReactive2({
    req(vpc())
@@ -563,5 +684,17 @@ server <- function(input, output, session) {
   #   setnames(s, "Span")
   # })
   
+  #Notifications
+  observe({
+    if(!input$isCensoring && input$isPlotBlq) {
+      showNotification("Please select censoring value before plotting BLQ", type = "error")
+    }
+  })
+
+  observe({
+    if(is.null(input$stratvar) && input$isBinStrat) {
+      showNotification("Please select stratfication variable before binning by strat.", type = "error")
+    }
+  })
   
 }
