@@ -17,8 +17,6 @@ binless_inputs_ui <- function(id) {
   ns <- NS(id)
   
   tagList(
-         tags$h4("Binless Parameters"),
-         tags$hr(),
          sliderInput(ns("interval"), label = "Optimization Interval", min = -2, max = 10, value = c(0, 7)), 
          tags$h5("Additive Quantile Regression"),
          sliderInput(inputId = ns('lambdaHi'), label = "Lambda Hi",value = 3, min = 0, max = 7, step = .01),
