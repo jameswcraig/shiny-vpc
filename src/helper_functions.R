@@ -14,6 +14,7 @@ render_lam_strat <- function(m, data){
   r
 }
 
+#
 # render_strat_binning <- function(m, data){
 #   r <- list()
 #   l <- lapply(data, unique)
