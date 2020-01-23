@@ -175,7 +175,7 @@ server <- function(input, output, session) {
         })
       }
     
-      if(is_false(input$typeBinning %in% c("breaks", "centers", "x-variable"))) {
+      if(is_false(input$typeBinning %in% c("breaks","centers","x-variable"))) {
         vpcUser <- metaExpr({
           ..(vpcUser) %>%
             binning(bin = ..(input$typeBinning), nbins = ..(input$nbins))
