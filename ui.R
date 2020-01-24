@@ -1,5 +1,5 @@
 ui <- dashboardPagePlus(
-  skin = "black",
+  skin = "black-light",
   header = dashboardHeaderPlus(title = title,
                                enable_rightsidebar = TRUE,
                                rightSidebarIcon = "paint-brush"),
@@ -36,7 +36,7 @@ ui <- dashboardPagePlus(
                radioButtons("typeVPC", label = "", choices = c("Binning", "Binless"), selected = "Binning"),
                fluidRow(
                  column(4,
-                        actionButton("buttonPlot", label = "Plot", width = '150%')
+                        actionButton("buttonPlot", label = "Plot",width = "150%")
                  ),
                  column(4,
                         actionButton("generateCode", label = "", icon = icon("code"))
@@ -47,22 +47,36 @@ ui <- dashboardPagePlus(
   ),
   
   body = dashboardBody( 
+    # useShinyjs(),
+    # extendShinyjs(text = 'shinyjs.hideSidebar = function(params) { $("body").addClass("sidebar-collapse"); 
+    #           $(window).trigger("resize"); }'),
+    # extendShinyjs(text='shinyjs.showSidebar = function(params) { $("body").removeClass("sidebar-collapse"); 
+    #           $(window).trigger("resize"); }'),
     tags$head(
       tags$link(rel = "stylesheet", type = "text/css", href = "certara.css")),
-    fluidPage(
       tags$body(
         tags$link(rel = "stylesheet", type = "text/css", href = "certara.css")),
       fluidRow(
-        column(10,
-               box(width = NULL,
-                 withSpinner(plotOutput("plotVPC", height = "800px"), type = 8),
+        column(9,
+             wellPanel(width = NULL,
+                 fluidRow(
+                 withSpinner(plotOutput("plotVPC", width = "100%", height = "auto"), type = 8),
                  conditionalPanel(condition = "input.isPlotBlq == true",
                                   withSpinner(plotOutput("plotBlq", height = "267px"),type = 8),
-                                  style = "background: white;"))
+                                  style = "background: white;")),
+                 dataTableOutput("tableObs"),
+             )
         ),
-        column(2,
-               wellPanel(#width = 12,
-                 fluidRow(
+        column(3,
+               box(width = NULL,
+                 # tags$head(
+                 #   tags$style(type="text/css", "label.radio { display: inline-block; }", ".radio input[type=\"radio\"] { float: none; }"),
+                 #   tags$style(type="text/css", "select { max-width: 200px; }"),
+                 #   tags$style(type="text/css", "textarea { max-width: 185px; }"),
+                 #   tags$style(type="text/css", ".jslider { max-width: 200px; }"),
+                 #   tags$style(type='text/css', ".well { max-width: 310px; }"),
+                 #   tags$style(type='text/css', ".span4 { max-width: 310px; }")
+                 # ),
                    conditionalPanel(condition = "input.typeVPC == 'Binning'",
                                            tags$h4("Binning Methods"),
                                            tags$hr(),
@@ -83,9 +97,7 @@ ui <- dashboardPagePlus(
                                           tags$br(),
                                           checkboxInput("isBinStrat", label = "Bin by Strata", value = FALSE),
 
-                                    ) 
-                 ),
-                 fluidRow(
+                                    ) ,
                    conditionalPanel(condition = "input.typeVPC == 'Binless'",
                                     column(12,
                                            tags$h4("Binless Parameters"),
@@ -99,11 +111,9 @@ ui <- dashboardPagePlus(
                                           )
                    )
                  )
-               )
-        ),
-        dataTableOutput("tableObs"),
+        )#,
+        #dataTableOutput("tableObs"),
       )
-    )
   ),
   
   rightsidebar = rightSidebar(background = "light",
@@ -150,6 +160,7 @@ ui <- dashboardPagePlus(
                                 textInput("xlabel", "X-Label", value = "TIME"),
                                 textInput("ylabel", "Y-Label", value = "Concentration")
                               )
-  )
+  ),
+  footer = dashboardFooter()
 )
 
