@@ -217,12 +217,27 @@ server <- function(input, output, session) {
            breaks2 <- NULL
          }
          
+         if(b1 == "x-variable" && b2!="x-variable") {
+           vpcUser <- metaExpr({ 
+             ..(vpcUser) %>%
+               binning(stratum = ..(l1), bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint), nbins = ..(input$nbins1), centers = ..(centers1), breaks = ..(breaks1), by.strata = T) %>%
+               binning(stratum = ..(l2), bin = ..(b2), xbin = ..(input$midPoint), nbins = ..(input$nbins2), centers = ..(centers2), breaks = ..(breaks2), by.strata = T) 
+           })
+         } else if(b1 != "x-variable" && b2 =="x-variable") {
+           vpcUser <- metaExpr({ 
+             ..(vpcUser) %>%
+               binning(stratum = ..(l1), bin = ..(b1), xbin = ..(input$midPoint), nbins = ..(input$nbins1), centers = ..(centers1), breaks = ..(breaks1), by.strata = T) %>%
+               binning(stratum = ..(l2), bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint), nbins = ..(input$nbins2), centers = ..(centers2), breaks = ..(breaks2), by.strata = T) 
+           })
+         } else {
          vpcUser <- metaExpr({ 
            ..(vpcUser) %>%
              binning(stratum = ..(l1), bin = ..(b1), xbin = ..(input$midPoint), nbins = ..(input$nbins1), centers = ..(centers1), breaks = ..(breaks1), by.strata = T) %>%
              binning(stratum = ..(l2), bin = ..(b2), xbin = ..(input$midPoint), nbins = ..(input$nbins2), centers = ..(centers2), breaks = ..(breaks2), by.strata = T) 
          })
-       }
+         }
+        }
+         
         if (length(stratlvl()[[1]]) == 3) {
          b1 <- input$typeBinning1
          b2 <- input$typeBinning2
@@ -233,12 +248,72 @@ server <- function(input, output, session) {
          names(l1) <- namesstrat()
          names(l2) <- namesstrat()
          names(l3) <- namesstrat()
-         vpcUser <- metaExpr({ 
-           ..(vpcUser) %>%
-             binning(stratum = ..(l1), bin = ..(b1), xbin = ..(input$midPoint), by.strata = T) %>%
-             binning(stratum = ..(l2), bin = ..(b2), xbin = ..(input$midPoint), by.strata = T) %>%
-             binning(stratum = ..(l3), bin = ..(b3), xbin = ..(input$midPoint), by.strata = T)
-         })
+         if(b1 == "centers") {
+           centers1 <- as.numeric(unlist(strsplit(input$centers1, split = ",")))
+         } else {
+           centers1 <- NULL
+         }
+         if(b1 == "breaks") {
+           breaks1 <- as.numeric(unlist(strsplit(input$breaks1, split = ",")))
+         } else {
+           breaks1 <- NULL
+         }
+         if(b2 == "centers") {
+           centers2 <- as.numeric(unlist(strsplit(input$centers2, split = ",")))
+         } else {
+           centers2 <- NULL
+         }
+         if(b2 == "breaks") {
+           breaks2 <- as.numeric(unlist(strsplit(input$breaks2, split = ",")))
+         } else {
+           breaks2 <- NULL
+         }
+         if(b3 == "centers") {
+           centers3 <- as.numeric(unlist(strsplit(input$centers3, split = ",")))
+         } else {
+           centers3 <- NULL
+         }
+         if(b3 == "breaks") {
+           breaks3 <- as.numeric(unlist(strsplit(input$breaks3, split = ",")))
+         } else {
+           breaks3 <- NULL
+         }
+         
+         if(b1 == "x-variable") {
+           vpcUser <- metaExpr({ 
+             ..(vpcUser) %>%
+               binning(stratum = ..(l1), bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint), by.strata = T)
+           })
+         } else {
+           vpcUser <- metaExpr({ 
+             ..(vpcUser) %>%
+               binning(stratum = ..(l1), bin = ..(b1), xbin = ..(input$midPoint), nbins = ..(input$nbins1), centers = ..(centers1), breaks = ..(breaks1), by.strata = T)           
+             })
+         }
+         
+         if(b2 == "x-variable") {
+           vpcUser <- metaExpr({ 
+             ..(vpcUser) %>%
+               binning(stratum = ..(l2), bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint), by.strata = T)
+           })
+         } else {
+           vpcUser <- metaExpr({ 
+             ..(vpcUser) %>%
+               binning(stratum = ..(l2), bin = ..(b2), xbin = ..(input$midPoint), nbins = ..(input$nbins2), centers = ..(centers2), breaks = ..(breaks2), by.strata = T)           
+           })
+         }
+         
+         if(b3 == "x-variable") {
+           vpcUser <- metaExpr({ 
+             ..(vpcUser) %>%
+               binning(stratum = ..(l3), bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint), by.strata = T)
+           })
+         } else {
+           vpcUser <- metaExpr({ 
+             ..(vpcUser) %>%
+               binning(stratum = ..(l3), bin = ..(b3), xbin = ..(input$midPoint), nbins = ..(input$nbins3), centers = ..(centers3), breaks = ..(breaks3), by.strata = T)           
+           })
+         }
         }
          if (length(stratlvl()[[1]]) == 4) {
            b1 <- input$typeBinning1
@@ -253,14 +328,96 @@ server <- function(input, output, session) {
            names(l2) <- namesstrat()
            names(l3) <- namesstrat()
            names(l4) <- namesstrat()
-           vpcUser <- metaExpr({ 
-             ..(vpcUser) %>%
-               binning(stratum = ..(l1), bin = ..(b1), xbin = ..(input$midPoint), by.strata = T) %>%
-               binning(stratum = ..(l2), bin = ..(b2), xbin = ..(input$midPoint), by.strata = T) %>%
-               binning(stratum = ..(l3), bin = ..(b3), xbin = ..(input$midPoint), by.strata = T) %>%
-               binning(stratum = ..(l4), bin = ..(b4), xbin = ..(input$midPoint), by.strata = T) 
-           })
+           if(b1 == "centers") {
+             centers1 <- as.numeric(unlist(strsplit(input$centers1, split = ",")))
+           } else {
+             centers1 <- NULL
+           }
+           if(b1 == "breaks") {
+             breaks1 <- as.numeric(unlist(strsplit(input$breaks1, split = ",")))
+           } else {
+             breaks1 <- NULL
+           }
+           if(b2 == "centers") {
+             centers2 <- as.numeric(unlist(strsplit(input$centers2, split = ",")))
+           } else {
+             centers2 <- NULL
+           }
+           if(b2 == "breaks") {
+             breaks2 <- as.numeric(unlist(strsplit(input$breaks2, split = ",")))
+           } else {
+             breaks2 <- NULL
+           }
+           if(b3 == "centers") {
+             centers3 <- as.numeric(unlist(strsplit(input$centers3, split = ",")))
+           } else {
+             centers3 <- NULL
+           }
+           if(b3 == "breaks") {
+             breaks3 <- as.numeric(unlist(strsplit(input$breaks3, split = ",")))
+           } else {
+             breaks3 <- NULL
+           }
+           if(b4 == "centers") {
+             centers4 <- as.numeric(unlist(strsplit(input$centers4, split = ",")))
+           } else {
+             centers4 <- NULL
+           }
+           if(b4 == "breaks") {
+             breaks4 <- as.numeric(unlist(strsplit(input$breaks4, split = ",")))
+           } else {
+             breaks4 <- NULL
+           }
+           
+           if(b1 == "x-variable") {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l1), bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint), by.strata = T)
+             })
+           } else {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l1), bin = ..(b1), xbin = ..(input$midPoint), nbins = ..(input$nbins1), centers = ..(centers1), breaks = ..(breaks1), by.strata = T)           
+             })
+           }
+           
+           if(b2 == "x-variable") {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l2), bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint), by.strata = T)
+             })
+           } else {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l2), bin = ..(b2), xbin = ..(input$midPoint), nbins = ..(input$nbins2), centers = ..(centers2), breaks = ..(breaks2), by.strata = T)           
+             })
+           }
+           
+           if(b3 == "x-variable") {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l3), bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint), by.strata = T)
+             })
+           } else {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l3), bin = ..(b3), xbin = ..(input$midPoint), nbins = ..(input$nbins3), centers = ..(centers3), breaks = ..(breaks3), by.strata = T)           
+             })
+           }
+           
+           if(b4 == "x-variable") {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l4), bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint), by.strata = T)
+             })
+           } else {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l4), bin = ..(b4), xbin = ..(input$midPoint), nbins = ..(input$nbins4), centers = ..(centers4), breaks = ..(breaks4), by.strata = T)           
+             })
+           }
          }
+       
          if (length(stratlvl()[[1]]) == 5) {
            b1 <- input$typeBinning1
            b2 <- input$typeBinning2
@@ -277,14 +434,116 @@ server <- function(input, output, session) {
            names(l3) <- namesstrat()
            names(l4) <- namesstrat()
            names(l5) <- namesstrat()
-           vpcUser <- metaExpr({ 
-             ..(vpcUser) %>%
-               binning(stratum = ..(l1), bin = ..(b1), xbin = ..(input$midPoint), by.strata = T) %>%
-               binning(stratum = ..(l2), bin = ..(b2), xbin = ..(input$midPoint), by.strata = T) %>%
-               binning(stratum = ..(l3), bin = ..(b3), xbin = ..(input$midPoint), by.strata = T) %>%
-               binning(stratum = ..(l4), bin = ..(b4), xbin = ..(input$midPoint), by.strata = T) %>%
-               binning(stratum = ..(l5), bin = ..(b5), xbin = ..(input$midPoint), by.strata = T) 
-           })
+           if(b1 == "centers") {
+             centers1 <- as.numeric(unlist(strsplit(input$centers1, split = ",")))
+           } else {
+             centers1 <- NULL
+           }
+           if(b1 == "breaks") {
+             breaks1 <- as.numeric(unlist(strsplit(input$breaks1, split = ",")))
+           } else {
+             breaks1 <- NULL
+           }
+           if(b2 == "centers") {
+             centers2 <- as.numeric(unlist(strsplit(input$centers2, split = ",")))
+           } else {
+             centers2 <- NULL
+           }
+           if(b2 == "breaks") {
+             breaks2 <- as.numeric(unlist(strsplit(input$breaks2, split = ",")))
+           } else {
+             breaks2 <- NULL
+           }
+           if(b3 == "centers") {
+             centers3 <- as.numeric(unlist(strsplit(input$centers3, split = ",")))
+           } else {
+             centers3 <- NULL
+           }
+           if(b3 == "breaks") {
+             breaks3 <- as.numeric(unlist(strsplit(input$breaks3, split = ",")))
+           } else {
+             breaks3 <- NULL
+           }
+           if(b4 == "centers") {
+             centers4 <- as.numeric(unlist(strsplit(input$centers4, split = ",")))
+           } else {
+             centers4 <- NULL
+           }
+           if(b4 == "breaks") {
+             breaks4 <- as.numeric(unlist(strsplit(input$breaks4, split = ",")))
+           } else {
+             breaks4 <- NULL
+           }
+           if(b5 == "centers") {
+             centers5 <- as.numeric(unlist(strsplit(input$centers5, split = ",")))
+           } else {
+             centers5 <- NULL
+           }
+           if(b5 == "breaks") {
+             breaks5 <- as.numeric(unlist(strsplit(input$breaks5, split = ",")))
+           } else {
+             breaks5 <- NULL
+           }
+           
+           if(b1 == "x-variable") {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l1), bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint), by.strata = T)
+             })
+           } else {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l1), bin = ..(b1), xbin = ..(input$midPoint), nbins = ..(input$nbins1), centers = ..(centers1), breaks = ..(breaks1), by.strata = T)           
+             })
+           }
+           
+           if(b2 == "x-variable") {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l2), bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint), by.strata = T)
+             })
+           } else {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l2), bin = ..(b2), xbin = ..(input$midPoint), nbins = ..(input$nbins2), centers = ..(centers2), breaks = ..(breaks2), by.strata = T)           
+             })
+           }
+           
+           if(b3 == "x-variable") {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l3), bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint), by.strata = T)
+             })
+           } else {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l3), bin = ..(b3), xbin = ..(input$midPoint), nbins = ..(input$nbins3), centers = ..(centers3), breaks = ..(breaks3), by.strata = T)           
+             })
+           }
+           
+           if(b4 == "x-variable") {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l4), bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint), by.strata = T)
+             })
+           } else {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l4), bin = ..(b4), xbin = ..(input$midPoint), nbins = ..(input$nbins4), centers = ..(centers4), breaks = ..(breaks4), by.strata = T)           
+             })
+           }
+           
+           if(b5 == "x-variable") {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l5), bin = !!rlang::sym(..(input$xvar)), xbin = ..(input$midPoint), by.strata = T)
+             })
+           } else {
+             vpcUser <- metaExpr({ 
+               ..(vpcUser) %>%
+                 binning(stratum = ..(l5), bin = ..(b5), xbin = ..(input$midPoint), nbins = ..(input$nbins5), centers = ..(centers5), breaks = ..(breaks5), by.strata = T)           
+             })
+           }
          }
        }
      
@@ -570,21 +829,21 @@ server <- function(input, output, session) {
      if(is.null(vpc()$rqss.obs.fits)) {
        if (!is.null(vpc()$strat)) {
          boundaries <- isolate(metaExpr({
-           bininfo(vpc())[, .(x=sort(unique(c(xleft, xright)))), by=names(vpc()$strat)]
+           bininfo(..(vpc()))[, .(x=sort(unique(c(xleft, xright)))), by=names(..(vpc())$strat)]
          }))
        } else {
          boundaries <- isolate(metaExpr({
-           bininfo(vpc())[, .(x=sort(unique(c(xleft, xright))))]
+           bininfo(..(vpc()))[, .(x=sort(unique(c(xleft, xright))))]
          }))
        }
        if (input$showBinning) {
          g <- isolate(metaExpr({
-           ..(g) + ggplot2::geom_vline(data=boundaries, ggplot2::aes(xintercept=x), size=rel(0.5), col="gray80") +
+           ..(g) + ggplot2::geom_vline(data=..(boundaries), ggplot2::aes(xintercept=x), size=rel(0.5), col="gray80") +
            ggplot2::theme(panel.grid=ggplot2::element_blank())
          }))
        }
        g <- isolate(metaExpr({
-         ..(g) + ggplot2::geom_rug(data=boundaries, ggplot2::aes(x=x), sides="t", size=1)
+         ..(g) + ggplot2::geom_rug(data=..(boundaries), ggplot2::aes(x=x), sides="t", size=1)
        }))
      }
    } else {
@@ -650,7 +909,12 @@ server <- function(input, output, session) {
 
   output$plotVPC <- metaRender(renderPlot, {
     ..(vpcPlot())
-  })
+  }, height = function() {
+    session$clientData$output_plotVPC_width * .6
+    }, 
+     width = function() {
+       session$clientData$output_plotVPC_width
+     })
   
   output$plotBlq <- metaRender(renderPlot, {
     ..(blqPlot())
@@ -661,7 +925,12 @@ server <- function(input, output, session) {
   })
   
   output$tableObs <- renderDataTable({
-    datatable(vpc()$stats, rownames = FALSE) %>%
+    datatable(vpc()$stats, rownames = FALSE, options = list(
+      initComplete = JS(
+        "function(settings, json) {",
+        "$(this.api().table().header()).css({'background-color': '#0a7bc1', 'color': '#FFFFFF'});",
+        "}")
+    )) %>%
       formatRound(c("y", "lo", "md", "hi"), digits = 2)
   })
   
