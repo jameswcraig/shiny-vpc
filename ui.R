@@ -46,7 +46,7 @@ ui <- dashboardPagePlus(
     )
   ),
   
-  body = dashboardBody( 
+  body = dashboardBody( tags$div(class = "border"),
     # useShinyjs(),
     # extendShinyjs(text = 'shinyjs.hideSidebar = function(params) { $("body").addClass("sidebar-collapse"); 
     #           $(window).trigger("resize"); }'),
@@ -95,16 +95,17 @@ ui <- dashboardPagePlus(
                                                                    radioButtons("midPoint", label = "Midpoint", choices = c("xmedian", "xmean", "xmid", "xcenter"))
                                            ), 
                                           tags$br(),
-                                          checkboxInput("isBinStrat", label = "Bin by Strata", value = FALSE),
+                                          conditionalPanel(condition = "input.stratvar.length  == 1",
+                                          checkboxInput("isBinStrat", label = "Bin by Strata", value = FALSE)),
 
                                     ) ,
                    conditionalPanel(condition = "input.typeVPC == 'Binless'",
                                     column(12,
                                            tags$h4("Binless Parameters"),
                                            tags$hr(),
-                                           conditionalPanel(condition = "input.isAutoOptimize == false",
-                                                            binless_inputs_ui("binlessInputs1"),
-                                                            checkboxInput("isBinlessStrata", label = "Binless by Strata", value = FALSE)),
+                                           conditionalPanel(condition = "(input.isAutoOptimize == false && input.stratvar.length < 1)",
+                                                            binless_inputs_ui("binlessInputs1")),
+                                                            checkboxInput("isBinlessStrata", label = "Binless by Strata", value = FALSE),
                                           checkboxInput("isAutoOptimize", label = "Auto-Optimize", value = FALSE),
                                            conditionalPanel("input.isBinlessStrata == true && input.isAutoOptimize == false",
                                              uiOutput("stratLambdas")),
