@@ -69,7 +69,7 @@ ui <- dashboardPagePlus(
                  conditionalPanel(condition = "input.typeVPC == 'Binning'",
                                   tags$h4("Binning Methods"),
                                   tags$hr(),
-                                  conditionalPanel("input.isBinStrat == true",
+                                  conditionalPanel("input.isBinStrat == true && input.stratvar.length  < 2",
                                                    uiOutput("stratpanels")),
                                   conditionalPanel("input.isBinStrat == false",
                                                    radioButtons("typeBinning", label = "Binning Type", choices = c("x-variable", "ntile", "pam", "sd", "equal", "pretty", "quantile", "kmeans", "jenks", "centers", "breaks")),
@@ -95,8 +95,8 @@ ui <- dashboardPagePlus(
                                          conditionalPanel(condition = "(input.isAutoOptimize == false && input.stratvar.length < 1)",
                                                           binless_inputs_ui("binlessInputs1")),
                                          checkboxInput("isBinlessStrata", label = "Binless by Strata", value = FALSE),
-                                         switchInput("isAutoOptimize", label = "Smoothing", onLabel = "Auto", offLabel = "Manual", value = FALSE, width = "125%", handleWidth = '125px'),
-                                         conditionalPanel("input.isBinlessStrata == true && input.isAutoOptimize == false",
+                                         switchInput("isAutoOptimize", label = "Smoothing", onLabel = "Auto", offLabel = "Man", value = FALSE),
+                                         conditionalPanel("input.isBinlessStrata == true && input.isAutoOptimize == false && input.stratvar.length < 2",
                                                           uiOutput("stratLambdas")),
                                   )
                  )

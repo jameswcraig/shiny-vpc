@@ -988,9 +988,28 @@ server <- function(input, output, session) {
   
   observe({
     if(input$isBinStrat && length(input$stratvar) > 1) {
-      showNotification("Bin by strata limited to one stratification variable.", type = "error")
+      showNotification("Bin by strata limited to one stratification variable. Use one binning method for multiple stratification variables.", type = "error", duration = 5)
     }
   })
   
+  observe({
+    if(input$isBinlessStrata && length(input$stratvar) > 1) {
+      showNotification("Manual smoothing limited to one stratification variable. Use auto-smoothing for multiple stratification variables.", type = "error", duration = 5)
+    }
+  })
+  
+  observe({
+    isolate({
+    logicBinless <- isFALSE(input$isBinlessStrata) && isFALSE(input$isAutoOptimize)
+    updateCheckboxInput(session, "isBinlessStrata", value = logicBinless)
+    })
+  })
+  
+  observe({
+    isolate({
+      isStrat2 <- length(input$stratvar) >= 2 && isFALSE(input$isAutoOptimize)
+      updateSwitchInput(session, "isAutoOptimize", value = isStrat2)
+    })
+  })
   
 }
