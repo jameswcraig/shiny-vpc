@@ -26,7 +26,7 @@ install.packages("devtools")
 library(devtools)
 devtools::install_github("jameswcraig/vpcstats")
 # Install CRAN Dependencies:
-install.packages(c("DT", "ggplot2", "rlang", "shinyAce",
+install.packages(c("backports", "DT", "ggplot2", "rlang", "shinyAce",
   "shinydashboard", "shinydashboardPlus", "shinyjs",
   "shinycssloaders", "shinyWidgets"))
 # Install shinyMeta by Rstudio for code generation:
