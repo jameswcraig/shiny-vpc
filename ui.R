@@ -1,9 +1,10 @@
 ui <- dashboardPagePlus(
   skin = "black-light",
-  header = dashboardHeaderPlus(title = title,
+  header = dashboardHeaderPlus(title = tagList(
+    span(class = "logo-lg", title), 
+    img(src = "certara_thumbnail.png", height = "34", width = "34", padding_left = "-10")),
                                enable_rightsidebar = TRUE,
                                rightSidebarIcon = "paint-brush"),
-  
   sidebar = dashboardSidebar(
     tags$style(
       tags$link(rel = "stylesheet", type = "text/css", href = "certara.css")
@@ -36,7 +37,7 @@ ui <- dashboardPagePlus(
                radioButtons("typeVPC", label = "", choices = c("Binning", "Binless"), selected = "Binning"),
                fluidRow(
                  column(4,
-                        actionButton("buttonPlot", label = "Plot",width = "150%")
+                        actionButton("buttonPlot", label = "Plot", width = "150%")
                  ),
                  column(4,
                         actionButton("generateCode", label = "", icon = icon("code"))
@@ -46,75 +47,62 @@ ui <- dashboardPagePlus(
     )
   ),
   
-  body = dashboardBody( tags$div(class = "border"),
-    # useShinyjs(),
-    # extendShinyjs(text = 'shinyjs.hideSidebar = function(params) { $("body").addClass("sidebar-collapse"); 
-    #           $(window).trigger("resize"); }'),
-    # extendShinyjs(text='shinyjs.showSidebar = function(params) { $("body").removeClass("sidebar-collapse"); 
-    #           $(window).trigger("resize"); }'),
+  body = dashboardBody(
     tags$head(
       tags$link(rel = "stylesheet", type = "text/css", href = "certara.css")),
-      tags$body(
-        tags$link(rel = "stylesheet", type = "text/css", href = "certara.css")),
-      fluidRow(
-        column(9,
+    tags$body(
+      tags$link(rel = "stylesheet", type = "text/css", href = "certara.css")),
+    tags$br(),
+    fluidRow(
+      column(9,
              wellPanel(width = NULL,
-                 fluidRow(
-                 withSpinner(plotOutput("plotVPC", width = "100%", height = "auto"), type = 8),
-                 conditionalPanel(condition = "input.isPlotBlq == true",
-                                  withSpinner(plotOutput("plotBlq", height = "267px"),type = 8),
-                                  style = "background: white;")),
-                 dataTableOutput("tableObs"),
+                       fluidRow(
+                         withSpinner(plotOutput("plotVPC", width = "100%", height = "auto"), type = 8),
+                         conditionalPanel(condition = "input.isPlotBlq == true",
+                                          withSpinner(plotOutput("plotBlq", height = "267px"),type = 8),
+                                          style = "background: white;")),
+                       dataTableOutput("tableObs"),
              )
-        ),
-        column(3,
-               box(width = NULL,
-                 # tags$head(
-                 #   tags$style(type="text/css", "label.radio { display: inline-block; }", ".radio input[type=\"radio\"] { float: none; }"),
-                 #   tags$style(type="text/css", "select { max-width: 200px; }"),
-                 #   tags$style(type="text/css", "textarea { max-width: 185px; }"),
-                 #   tags$style(type="text/css", ".jslider { max-width: 200px; }"),
-                 #   tags$style(type='text/css', ".well { max-width: 310px; }"),
-                 #   tags$style(type='text/css', ".span4 { max-width: 310px; }")
-                 # ),
-                   conditionalPanel(condition = "input.typeVPC == 'Binning'",
-                                           tags$h4("Binning Methods"),
-                                           tags$hr(),
-                                           conditionalPanel("input.isBinStrat == true",
-                                                            uiOutput("stratpanels")),
-                                           conditionalPanel("input.isBinStrat == false",
-                                                            radioButtons("typeBinning", label = "Binning Type", choices = c("x-variable", "ntile", "pam", "sd", "equal", "pretty", "quantile", "kmeans", "jenks", "centers", "breaks")),
-                                                            conditionalPanel(condition = "input.typeBinning == 'breaks'",
-                                                                             textInput("breaks", label = "Breaks", value = "0,1,3,5")),
-                                                            conditionalPanel(condition = "input.typeBinning == 'centers'",
-                                                                             textInput("centers", label = "Centers", value = "0,1,3,5")),
-                                                            numericInput("nbins", label = "Number of Bins", min = 1, max = 12, value = 6, step = 1, width = "30%"),
-                                                            tags$br(),     
-                                                            tags$h4("Midpoint"),
-                                                                   tags$hr(),
-                                                                   radioButtons("midPoint", label = "Midpoint", choices = c("xmedian", "xmean", "xmid", "xcenter"))
-                                           ), 
-                                          tags$br(),
-                                          conditionalPanel(condition = "input.stratvar.length  == 1",
-                                          checkboxInput("isBinStrat", label = "Bin by Strata", value = FALSE)),
-
-                                    ) ,
-                   conditionalPanel(condition = "input.typeVPC == 'Binless'",
-                                    column(12,
-                                           tags$h4("Binless Parameters"),
-                                           tags$hr(),
-                                           conditionalPanel(condition = "(input.isAutoOptimize == false && input.stratvar.length < 1)",
-                                                            binless_inputs_ui("binlessInputs1")),
-                                                            checkboxInput("isBinlessStrata", label = "Binless by Strata", value = FALSE),
-                                          checkboxInput("isAutoOptimize", label = "Auto-Optimize", value = FALSE),
-                                           conditionalPanel("input.isBinlessStrata == true && input.isAutoOptimize == false",
-                                             uiOutput("stratLambdas")),
-                                          )
-                   )
+      ),
+      column(3,
+             box(width = NULL,
+                 conditionalPanel(condition = "input.typeVPC == 'Binning'",
+                                  tags$h4("Binning Methods"),
+                                  tags$hr(),
+                                  conditionalPanel("input.isBinStrat == true",
+                                                   uiOutput("stratpanels")),
+                                  conditionalPanel("input.isBinStrat == false",
+                                                   radioButtons("typeBinning", label = "Binning Type", choices = c("x-variable", "ntile", "pam", "sd", "equal", "pretty", "quantile", "kmeans", "jenks", "centers", "breaks")),
+                                                   conditionalPanel(condition = "input.typeBinning == 'breaks'",
+                                                                    textInput("breaks", label = "Breaks", value = "0,1,3,5")),
+                                                   conditionalPanel(condition = "input.typeBinning == 'centers'",
+                                                                    textInput("centers", label = "Centers", value = "0,1,3,5")),
+                                                   numericInput("nbins", label = "Number of Bins", min = 1, max = 12, value = 6, step = 1, width = "30%"),
+                                                   tags$br(),     
+                                                   tags$h4("Midpoint"),
+                                                   tags$hr(),
+                                                   radioButtons("midPoint", label = "Midpoint", choices = c("xmedian", "xmean", "xmid", "xcenter"))
+                                  ), 
+                                  tags$br(),
+                                  conditionalPanel(condition = "input.stratvar.length  == 1",
+                                                   checkboxInput("isBinStrat", label = "Bin by Strata", value = FALSE)),
+                                  
+                 ) ,
+                 conditionalPanel(condition = "input.typeVPC == 'Binless'",
+                                  column(12,
+                                         tags$h4("Binless Parameters"),
+                                         tags$hr(),
+                                         conditionalPanel(condition = "(input.isAutoOptimize == false && input.stratvar.length < 1)",
+                                                          binless_inputs_ui("binlessInputs1")),
+                                         checkboxInput("isBinlessStrata", label = "Binless by Strata", value = FALSE),
+                                         checkboxInput("isAutoOptimize", label = "Auto-Optimize", value = FALSE),
+                                         conditionalPanel("input.isBinlessStrata == true && input.isAutoOptimize == false",
+                                                          uiOutput("stratLambdas")),
+                                  )
                  )
-        )#,
-        #dataTableOutput("tableObs"),
+             )
       )
+    ), tags$footer()
   ),
   
   rightsidebar = rightSidebar(background = "light",
@@ -146,7 +134,7 @@ ui <- dashboardPagePlus(
                                 checkboxInput("isLogX", "Log X", value = FALSE),
                                 tags$hr(),
                                 tags$h4("Show/Hide"),
-                                checkboxInput("showPoints", "Show Points", value = TRUE),
+                                checkboxInput("showPoints", "Points", value = TRUE),
                                 checkboxInput("showBinning", "Binning", value = TRUE),
                                 checkboxInput("showBoundaries", "Boundaries", value = TRUE),
                                 checkboxInput("showStats", "Stats", value = TRUE),
@@ -162,6 +150,7 @@ ui <- dashboardPagePlus(
                                 textInput("ylabel", "Y-Label", value = "Concentration")
                               )
   ),
-  footer = dashboardFooter()
+  footer = dashboardFooter(
+   right_text =  tags$div(class = "ficon", tagList(facebook, twitter, linkedin, youtube)))
 )
 
