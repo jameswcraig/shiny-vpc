@@ -78,7 +78,7 @@ server <- function(input, output, session) {
  
  output$stratpanels <- renderUI({
    tagList(
-     tags$h5("Select Method Binning by Strata"),
+     tags$h5("Select Binning Method by Strata"),
      tt())
  })
  
@@ -773,7 +773,8 @@ server <- function(input, output, session) {
         })
       }
  
-     g <- metaExpr({
+     g <- isolate({
+       metaExpr({
        ..(g) +
           scale_colour_manual(
           name=..(paste0("Simulated Percentiles\nMedian (lines) ", plotAesthetics()$conf.level * 100, "% CI (areas)")),
@@ -799,6 +800,7 @@ server <- function(input, output, session) {
           legend.key.width=grid::unit(2, "cm")) +
          labs(x= ..(plotAesthetics()$xlabel), y= ..(plotAesthetics()$ylabel))
  })
+     })
 
    if(!input$showStats && input$typeVPC == "Binning") {
      if(facet_formula != "") {
@@ -923,8 +925,7 @@ server <- function(input, output, session) {
        library(vpcstats)
      }),
      output$vpccode(), 
-     output$plotVPC()#,
-     #output$plotBlq()
+     output$plotVPC()
    )
    
    displayCodeModal(
@@ -940,7 +941,8 @@ server <- function(input, output, session) {
     }, 
      width = function() {
        session$clientData$output_plotVPC_width
-     })
+     },
+  execOnResize = TRUE)
   
   output$plotBlq <- metaRender(renderPlot, {
     ..(blqPlot())
