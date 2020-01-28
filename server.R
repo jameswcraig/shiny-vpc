@@ -807,7 +807,7 @@ server <- function(input, output, session) {
        if(input$facetScales == "free") {
      g <- isolate(metaExpr({
        ggplot2::ggplot(vpc()$strat) +
-         facet_wrap(..(form), scales = "free") +
+         facet_wrap(..(facet_formula), scales = "free") +
          theme(
            legend.position=..(plotAesthetics()$legend.position),
            legend.key.width=grid::unit(2, "cm")) +
