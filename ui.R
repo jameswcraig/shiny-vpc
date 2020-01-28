@@ -95,7 +95,7 @@ ui <- dashboardPagePlus(
                                          conditionalPanel(condition = "(input.isAutoOptimize == false && input.stratvar.length < 1)",
                                                           binless_inputs_ui("binlessInputs1")),
                                          checkboxInput("isBinlessStrata", label = "Binless by Strata", value = FALSE),
-                                         checkboxInput("isAutoOptimize", label = "Auto-Optimize", value = FALSE),
+                                         switchInput("isAutoOptimize", label = "Smoothing", onLabel = "Auto", offLabel = "Manual", value = FALSE),
                                          conditionalPanel("input.isBinlessStrata == true && input.isAutoOptimize == false",
                                                           uiOutput("stratLambdas")),
                                   )
