@@ -95,7 +95,7 @@ ui <- dashboardPagePlus(
                                          conditionalPanel(condition = "(input.isAutoOptimize == false && input.stratvar.length < 1)",
                                                           binless_inputs_ui("binlessInputs1")),
                                          checkboxInput("isBinlessStrata", label = "Binless by Strata", value = FALSE),
-                                         switchInput("isAutoOptimize", label = "Smoothing", onLabel = "Auto", offLabel = "Manual", value = FALSE),
+                                         switchInput("isAutoOptimize", label = "Smoothing", onLabel = "Auto", offLabel = "Manual", value = FALSE, width = "125%", handleWidth = '125px'),
                                          conditionalPanel("input.isBinlessStrata == true && input.isAutoOptimize == false",
                                                           uiOutput("stratLambdas")),
                                   )
@@ -110,7 +110,7 @@ ui <- dashboardPagePlus(
                                 id = "linesSB",
                                 title = NULL,
                                 icon = "chart-line",
-                                active = TRUE,
+                                active = FALSE,
                                 tags$h4("Line Type"),
                                 selectizeInput("lineTypeHi", "Quantile High", choices = c("blank", "solid", "dashed", "dotted", "dotdash", "longdash", "twodash"), selected = "dashed"),
                                 selectizeInput("lineTypeMed", "Quantile Median", choices = c("blank", "solid", "dashed", "dotted", "dotdash", "longdash", "twodash"), selected = "solid"),
@@ -125,6 +125,7 @@ ui <- dashboardPagePlus(
                               rightSidebarTabContent(
                                 id = "layoutSB",
                                 title = NULL,
+                                active = TRUE,
                                 icon = "th-large",
                                 tags$h4("Layout"),
                                 selectizeInput("legendPosition", "Legend", choices = c("top", "bottom", "left", "right"), selected = "top"),
