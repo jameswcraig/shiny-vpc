@@ -38,16 +38,29 @@ shiny::runGitHub("shiny-vpc", "jameswcraig")
 
 ```
 
+## File Layout
+
+The Shiny application requires 2 separate file uploads which can be in csv, fit, or RDS format:
+
+1.) obs_data: Observed data with the following columns:
+
+* **Required:** *TIME, DV*
+* **Optional:** *PRED, LLOQ, Stratification Variables*
+
+2.) sim_data: Simulated data with the following columns:
+
+* **Required:** *TIME, DV, REP*
+* **Optional:** *PRED, LLOQ, Stratification Variables*
+
+**Notes:** Please subset MDV = 0 in data before uploading and make sure there are no missing rows. Variable names do not need to match the names above but at a minimum your data will need to contain a y-variable (typically named DV) and x-variable (typically TIME) to derive VPC.
+
+
+
 ## Example Code Generation
 
 ``` r
-library(vpc)
 library(vpcstats)
 library(ggplot2)
-exampleobs <- as.data.table(vpc::simple_data$obs)[MDV == 0]
-examplesim <- as.data.table(vpc::simple_data$sim)[MDV == 0]
-exampleobs$PRED <- examplesim[REP == 1, PRED]
-exampleobs$LLOQ <- exampleobs[, ifelse(ISM == 0, 100, 25)]
 
 vpc <- observed(obs_data, x = !!rlang::sym("TIME"), y = !!rlang::sym("DV")) %>%
   simulated(sim_data, y = !!rlang::sym("DV")) %>%
