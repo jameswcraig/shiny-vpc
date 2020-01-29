@@ -149,7 +149,10 @@ ui <- dashboardPagePlus(
                                 tags$hr(),
                                 textInput("xlabel", "X-Label", value = "TIME"),
                                 textInput("ylabel", "Y-Label", value = "Concentration")
-                              )
+                              ),
+                              tags$script(HTML(
+                                "$(\".control-sidebar\").on('webkitTransitionEnd otransitionend oTransitionEnd msTransitionEnd transitionend', function() { $(window).trigger(\"resize\"); } );"
+                              ))
   ),
   footer = dashboardFooter(
    right_text =  tags$div(class = "ficon", tagList(facebook, twitter, linkedin, youtube)))
