@@ -658,7 +658,7 @@ server <- function(input, output, session) {
     facet.scales = input$facetScales,
     xlabel = input$xlabel,
     ylabel = input$ylabel,
-    qlabel = userQuantiles(),
+    #qlabel = userQuantiles(),
     facet.scales.type = input$facetScales,
     conf.level = confidenceInterval()
     )
@@ -778,19 +778,19 @@ server <- function(input, output, session) {
        ..(g) +
           scale_colour_manual(
           name=..(paste0("Simulated Percentiles\nMedian (lines) ", plotAesthetics()$conf.level * 100, "% CI (areas)")),
-          breaks=..(paste0("q", plotAesthetics()$qlabel)) ,
+          breaks=..(paste0("q", userQuantiles())) ,
           values= ..(plotAesthetics()$color),
-          labels=..(paste0(plotAesthetics()$qlabel * 100, "%"))) +
+          labels=..(paste0(userQuantiles() * 100, "%"))) +
          scale_fill_manual(
           name=..(paste0("Simulated Percentiles\nMedian (lines) ", plotAesthetics()$conf.level * 100, "% CI (areas)")),
-          breaks=..(paste0("q", plotAesthetics()$qlabel)),
+          breaks=..(paste0("q", userQuantiles())),
           values=..(plotAesthetics()$color),
-          labels=..(paste0(plotAesthetics()$qlabel * 100, "%"))) +
+          labels=..(paste0(userQuantiles() * 100, "%"))) +
          scale_linetype_manual(
           name=..(paste0("Observed Percentiles\nMedian (lines) ", plotAesthetics()$conf.level * 100, "% CI (areas)")),
-          breaks=..(paste0("q", plotAesthetics()$qlabel)),
+          breaks=..(paste0("q", userQuantiles())),
           values= ..(plotAesthetics()$linetype),
-          labels=..(paste0(plotAesthetics()$qlabel * 100, "%"))) +
+          labels=..(paste0(userQuantiles() * 100, "%"))) +
          guides(
           fill=guide_legend(order=2),
           colour=guide_legend(order=2),
