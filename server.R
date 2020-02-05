@@ -762,10 +762,16 @@ server <- function(input, output, session) {
    })
  
     if(input$isLogDV) {
+      if(min(vpc()$stats$lo) < 0) {
        g <-  metaExpr({
-        ..(g) + scale_y_log10()
+        ..(g) + scale_y_continuous(trans="log10", limits=c(0.1,max(..(vpc())$stats$hi)))
         })
+      } else {
+        g <-  metaExpr({
+          ..(g) + scale_y_log10()
+      })
       }
+    }
  
     if(input$isLogX) {
        g <-  metaExpr({
