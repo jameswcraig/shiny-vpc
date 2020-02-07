@@ -928,7 +928,7 @@ server <- function(input, output, session) {
    code <- expandChain(
      quote({
        library(ggplot2)
-       library(vpcstats)
+       library(tidyvpc)
      }),
      output$vpccode(), 
      output$plotVPC()
