@@ -4,7 +4,7 @@ shiny-vpc
 # Shiny App for Visual Predictive Check (VPC)
 
 This repo contains a Shiny application to derive VPCs and pcVPCs using traditional binning methods and advanced regression techniques (binless methods).
-The application utilizes the `vpcstats` package developed by our team of pharmacometricians and software engineers at Certara.
+The application utilizes the `tidyvpc` package developed by our team of pharmacometricians and software engineers at Certara.
 
 
 ## Features
@@ -21,10 +21,10 @@ The application utilizes the `vpcstats` package developed by our team of pharmac
 ## Installation and Running information
 
 ``` r
-# Install the development version from GitHub:
+# Install the development version of tidyvpc from GitHub:
 install.packages("devtools")
 library(devtools)
-devtools::install_github("jameswcraig/vpcstats")
+devtools::install_github("jameswcraig/tidyvpc")
 # Install CRAN Dependencies:
 install.packages(c("backports", "DT", "ggplot2", "rlang", "shinyAce",
   "shinydashboard", "shinydashboardPlus", "shinyjs",
