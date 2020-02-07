@@ -143,7 +143,7 @@ ui <- dashboardPagePlus(
                               ),
                               rightSidebarTabContent(
                                 id = "edit",
-                                title = NULL,
+                                title = NULL, 
                                 icon = "edit",
                                 tags$h4("Labels"),
                                 tags$hr(),
