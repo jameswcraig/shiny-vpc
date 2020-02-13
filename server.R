@@ -898,7 +898,7 @@ server <- function(input, output, session) {
     g <- metaExpr({
         ggplot(
           ..(vpc())$pctblq) +
-        geom_ribbon(aes(x = xbin, ymin= lo, ymax = hi), fill = "green2", alpha = .2) + 
+        geom_ribbon(aes(x = xbin, ymin= lo, ymax = hi), fill = "red", alpha = .2) + 
         geom_line(aes(x = xbin, y = y)) + 
         labs(x= ..(plotAesthetics()$xlabel), y= "% BLQ")
     })
@@ -907,8 +907,9 @@ server <- function(input, output, session) {
        g <- metaExpr({
          ggplot(
            ..(vpc())$pctblq) +
-           geom_ribbon(aes(x = x, ymin= lo, ymax = hi), fill = "green2", alpha = .2) + 
-           geom_line(aes(x = x, y = y)) + 
+           geom_ribbon(aes(x = x, ymin= lo, ymax = hi), fill = "red", alpha = .2) + 
+           geom_line(aes(x = x, y = y), colour = "black") + 
+           geom_line(aes(x = x, y = md), colour = "red") + 
            labs(x= ..(plotAesthetics()$xlabel), y= "% BLQ")
        })
      }
